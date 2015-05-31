@@ -4,7 +4,7 @@
 
 
 """
-import numpy
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -23,12 +23,12 @@ class BitPlane:
     one can allow for ECHOing, providing a more intuitive sense of "velocity" based on the master.
 
     That is not to say one could not have multiple CAM's operating simultaneously though. We can consider
-    a configuration to consist of an arbitrary numer of planes, of which one is the master, but multiple
+    a configuration to consist of an arbitrary number of planes, of which one is the master, but multiple
     masters can exist in separate CAMs that can interact with one another.
     """
 
-    def __init__(self):
+    def __init__(self, *dimensions):
         """
 
         """
-        pass
+        self.grid = np.zeros(dimensions)
