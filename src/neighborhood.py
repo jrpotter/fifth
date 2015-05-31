@@ -33,10 +33,6 @@ class Cells(enum.Enum):
     FORWARD     = 1 << 10
     BACKWARD    = 1 << 11
 
-    # Shortcuts
-    NEUMANN     = NORTH | EAST | SOUTH | WEST
-    MOORE       = NORTH | NORTHEAST | EAST | SOUTHEAST | SOUTH | SOUTHWEST | WEST | NORTHWEST | NORTH
-
 
 class Neighborhood:
     """
@@ -52,5 +48,7 @@ class Neighborhood:
     This allows indexing at levels beyond 3D, which the Cells enumeration does not allow, though visualization
     at this point isn't possible.
     """
-    pass
+    def __init__(self, grid):
+
+        pass
 

@@ -8,6 +8,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+class Bit:
+    """
+    Represents a "bit" in a bitplane.
+
+    Note we keep track of the index for vectorization purposes. By maintaining each index
+    and batch updating via the given index, we can much more efficiently update the entire
+    bitplane.
+    """
+    def __init__(self, value, *index):
+        self.value = value
+        self.index = index
 
 
 class BitPlane:
@@ -27,8 +38,24 @@ class BitPlane:
     masters can exist in separate CAMs that can interact with one another.
     """
 
-    def __init__(self, *dimensions):
+    @staticmethod
+    @np.vectorize
+    def _populate(*indices):
+        """
+        The following joins indices in N-dimensions together.
+
+        This information is stored in a bit (with initial value False) in order for batch processing
+        to be performed when actually updating values and computing whether a bit is on or off. For
+        example, if exploring a 4D array, we want to be able to know which bits we need to check the
+        status of, but this is relative to the current bit, whose position we do not know unless that
+        information is stored with the current bit.
+        """
+        return Bit(False, *indices)
+
+
+    def __init__(self, dimen):
         """
 
         """
-        self.grid = np.zeros(dimensions)
+        self.grid = BitPlane._populate(*np.indices(dimen))
+
