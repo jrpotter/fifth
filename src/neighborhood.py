@@ -1,6 +1,8 @@
 """
 
 
+@author: jrpotter
+@date: May 31st, 2015
 """
 import itertools
 
@@ -70,25 +72,25 @@ class Neighborhood:
         self.offsets = {}
 
 
-    def neighbors(self, bit, grid, wrap_around=True):
+    def neighbors(self, cell, grid, wrap_around=True):
         """
-        Returns all bits in the given neighborhood.
+        Returns all cells in the given neighborhood.
 
-        The returned cells are grouped with the value the cell is checked to be (a 2-tuple (Bit, value) pair).
+        The returned cells are grouped with the value the cell is checked to be (a 2-tuple (Cell, value) pair).
         These are sorted based on the NeighborhoodKey comparison class defined above.
         """
-        bits = []
+        cells = []
         for k in sorted(self.offsets.keys()):
-            position = [sum(x) for x in zip(bit.index, k)]
+            position = [sum(x) for x in zip(cell.index, k)]
             for i in range(len(position)):
                 if wrap_around:
                     position[i] = position[i] % grid.shape[i]
                 elif i < 0 or i >= grid.shape[i]:
                     break
             else:
-                bits.append(grid[tuple(position)])
+                cells.append((grid[tuple(position)], self.offsets[k]))
 
-        return bits
+        return cells
 
 
     def extend(self, offsets, strict=False):
