@@ -7,7 +7,8 @@ import itertools
 
 class Neighborhood:
     """
-    The following represents the cells that must be considered when applying a ruleset.
+    The following represents the cells that must be considered when applying a ruleset, as well as the
+    values expected in a ruleset.
 
     Since neighborhoods can be made arbitrarily complex, we allow extending in all directions. For example,
     the basic Moore neighborhood comprises of the 8 cells surrounding the center, but what if we wanted
@@ -69,7 +70,7 @@ class Neighborhood:
         self.offsets = {}
 
 
-    def neighbors(self, bit, grid):
+    def neighbors(self, bit, grid, wrap_around=True):
         """
         Returns all bits in the given neighborhood.
 
@@ -78,7 +79,14 @@ class Neighborhood:
         """
         bits = []
         for k in sorted(self.offsets.keys()):
-            bits.append((k, self.offsets[k]))
+            position = [sum(x) for x in zip(bit.index, k)]
+            for i in range(len(position)):
+                if wrap_around:
+                    position[i] = position[i] % grid.shape[i]
+                elif i < 0 or i >= grid.shape[i]:
+                    break
+            else:
+                bits.append(grid[tuple(position)])
 
         return bits
 
