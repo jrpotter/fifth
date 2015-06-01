@@ -21,10 +21,8 @@ def game_of_life(cell, neighbors):
         return False
 
 if __name__ == '__main__':
-    c = cam.CAM(1, (10, 10))
+    c = cam.CAM(1, (100, 100))
     c.randomize()
-    c.console_display()
     r = rs.Ruleset(rs.Rule.SATISFY)
-    n = nh.Neighborhood.moore(c.master, True)
-    c.tick(r, n, game_of_life)
-    c.console_display()
+    n = nh.Neighborhood.moore(c.master.grid, True)
+    c.start_plot(50, r, n, game_of_life)

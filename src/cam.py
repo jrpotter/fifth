@@ -2,11 +2,16 @@
 
 
 """
+import time
 import copy
-import numpy as np
+
 import ruleset as rs
 import cell_plane as cp
 import neighborhood as nh
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as ani
 
 
 class CAM:
@@ -25,7 +30,43 @@ class CAM:
         cps = max(cps, 1)
         self._dimen = dimen
         self._planes = [cp.CellPlane(dimen) for i in range(cps)]
-        self.master = self._planes[0].grid
+        self.master = self._planes[0]
+
+
+    def start_plot(self, clock, ruleset, neighborhood, *args):
+        """
+        Initiates the main loop.
+
+        The following function displays the actual graphical component (through use of matplotlib), and triggers the
+        next tick for every "clock" milliseconds.
+        """
+        fig, ax = plt.subplots()
+
+        ax.set_frame_on(False)
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+
+        mshown = plt.matshow(self.master.to_binary(), fig.number)
+
+        def animate(frame):
+            self.tick(ruleset, neighborhood, *args)
+            mshown.set_array(self.master.to_binary())
+            fig.canvas.draw()
+
+        ani.FuncAnimation(fig, animate, interval=clock)
+
+        plt.axis('off')
+        plt.show()
+
+
+    def start_console(self, clock, ruleset, neighborhood, *args):
+        """
+
+        """
+        while True:
+            print(self.to_binary())
+            time.sleep(clock / 1000)
+            self.tick(ruleset, neighborhood, *args)
 
 
     def tick(self, ruleset, neighborhood, *args):
@@ -36,7 +77,7 @@ class CAM:
         is placed into the master grid. Depending on the timing specifications set by the user, this
         may also change secondary cell planes (the master is always updated on each tick).
         """
-        self.master[:] = rs.Ruleset.update(self.master, ruleset, neighborhood, *args)
+        self.master.grid[:] = rs.Ruleset.update(self.master.grid, ruleset, neighborhood, *args)
 
 
     def randomize(self):
@@ -48,16 +89,5 @@ class CAM:
             cell.value = np.random.random_integers(0, 1)
             return cell
 
-        v_random(self.master)
-
-
-    def console_display(self):
-        """
-        A convenience method used to display the grid onto the console.
-
-        This should not be called frequently; I haven't benchmarked it but I do not anticipate this
-        running very well for larger grids.
-        """
-        vfunc = np.vectorize(lambda x: int(x.value))
-        print(vfunc(self.master))
+        v_random(self.master.grid)
 

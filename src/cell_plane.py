@@ -59,3 +59,11 @@ class CellPlane:
         """
         self.grid = CellPlane._populate(*np.indices(dimen))
 
+
+    def to_binary(self):
+        """
+
+        """
+        vfunc = np.vectorize(lambda x: int(x.value))
+        return vfunc(self.grid)
+
