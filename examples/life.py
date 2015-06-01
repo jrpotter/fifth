@@ -1,6 +1,8 @@
-import cam
-import ruleset as rs
-import neighborhood as nh
+"""
+
+@author: jrpotter
+@date: June 01, 2015
+"""
 
 def game_of_life(coordinate, grid, neighbors):
     """
@@ -21,6 +23,14 @@ def game_of_life(coordinate, grid, neighbors):
         return False
 
 if __name__ == '__main__':
+
+    import os, sys
+    sys.path.append(os.path.abspath('src'))
+
+    import cam
+    import ruleset as rs
+    import neighborhood as nh
+
     c = cam.CAM(1, (100, 100))
     c.randomize()
     r = rs.Ruleset(rs.Rule.SATISFY)
