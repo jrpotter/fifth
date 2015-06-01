@@ -1,12 +1,13 @@
 """
 
-
+@author: jrpotter
+@date: June 01, 2015
 """
 import time
 import copy
 
+import camtools
 import ruleset as rs
-import cell_plane as cp
 import neighborhood as nh
 
 import numpy as np
@@ -23,14 +24,12 @@ class CAM:
     all methods needed (i.e. supported) to interact/configure the cellular automata as desired.
     """
 
-    def __init__(self, cps=1, dimen=(100,100)):
+    def __init__(self, cps=1, dimen=(100, 100)):
         """
 
         """
-        cps = max(cps, 1)
-        self._dimen = dimen
-        self._planes = [cp.CellPlane(dimen) for i in range(cps)]
-        self.master = self._planes[0]
+        self.planes = np.zeros((max(cps, 1),) + dimen, dtype=np.int32)
+        self.master = self.planes[0]
 
 
     def start_plot(self, clock, ruleset, neighborhood, *args):
@@ -46,11 +45,11 @@ class CAM:
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
 
-        mshown = plt.matshow(self.master.to_binary(), fig.number)
+        mshown = plt.matshow(self.master, fig.number)
 
         def animate(frame):
             self.tick(ruleset, neighborhood, *args)
-            mshown.set_array(self.master.to_binary())
+            mshown.set_array(self.master)
             fig.canvas.draw()
 
         ani.FuncAnimation(fig, animate, interval=clock)
@@ -64,7 +63,7 @@ class CAM:
 
         """
         while True:
-            print(self.to_binary())
+            print(self.master)
             time.sleep(clock / 1000)
             self.tick(ruleset, neighborhood, *args)
 
@@ -77,17 +76,15 @@ class CAM:
         is placed into the master grid. Depending on the timing specifications set by the user, this
         may also change secondary cell planes (the master is always updated on each tick).
         """
-        self.master.grid[:] = rs.Ruleset.update(self.master.grid, ruleset, neighborhood, *args)
+        tmp = np.copy(self.master)
+        for i in range(len(self.master.flat)):
+            tmp.flat[i] = ruleset.call(i, self.master, neighborhood, *args)
+        self.master[:] = tmp
 
 
     def randomize(self):
         """
         Set the master grid to a random configuration.
         """
-        @np.vectorize
-        def v_random(cell):
-            cell.value = np.random.random_integers(0, 1)
-            return cell
-
-        v_random(self.master.grid)
+        self.master[:] = np.random.random_integers(0, 1, self.master.shape)
 

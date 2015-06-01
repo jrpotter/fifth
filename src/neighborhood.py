@@ -4,7 +4,8 @@
 @author: jrpotter
 @date: May 31st, 2015
 """
-import itertools
+import camtools as ct
+import itertools as it
 
 
 class Neighborhood:
@@ -23,45 +24,7 @@ class Neighborhood:
     at this point isn't possible.
     """
 
-    class NeighborhoodKey:
-        """
-        Allows proper sorting of neighborhoods.
-
-        Lists should be returned in order, where cell's with smaller indices (in most significant axis first)
-        are listed before cell's with larger ones. For example, in a 3D grid, the neighbors corresponding to:
-
-            offsets = (-1, -1, -1), (-1, 1, 0), (-1, 0, -1), and (1, 0, -1)
-
-        are returned in the following order:
-
-            offsets = (-1, -1, -1), (-1, 0, -1), (1, 0, -1), (-1, 1, 0)
-
-        since the z-axis is most significant, followed by the y-axis, and lastly the x-axis.
-        """
-        def __init__(self, obj, *args):
-            self.obj = obj
-        def __lt__(self, other):
-             return self.compare(self.obj, other.obj) < 0
-        def __gt__(self, other):
-            return self.compare(self.obj, other.obj) > 0
-        def __eq__(self, other):
-            return self.compare(self.obj, other.obj) == 0
-        def __le__(self, other):
-            return self.compare(self.obj, other.obj) <= 0
-        def __ge__(self, other):
-            return self.compare(self.obj, other.obj) >= 0
-        def __ne__(self, other):
-            return self.compare(self.obj, other.obj) != 0
-        def compare(self, other):
-            for i in reversed(range(len(a))):
-                if a[i] < b[i]:
-                    return -1
-                elif a[i] > b[i]:
-                    return 1
-            return 0
-
-
-    def __init__(self, grid, wrap_around=True):
+    def __init__(self, wrap_around=True):
         """
         Sets up an empty neighborhood.
 
@@ -69,42 +32,41 @@ class Neighborhood:
         Note the offsets have a tuple as a key representing the position being offsetted by, and as a value,
         the current state the given cell at the offset is checked to be.
         """
-        self.grid = grid
         self.offsets = {}
         self.wrap_around = wrap_around
 
 
-    def neighbors(self, cell):
+    def neighbors(self, index, grid):
         """
         Returns all cells in the given neighborhood.
 
-        The returned cells are grouped with the value the cell is checked to be (a 2-tuple (Cell, value) pair).
-        These are sorted based on the NeighborhoodKey comparison class defined above.
+        The returned list of indices represent the index in question, the value at the given index, and
+        the expected value as defined in the offsets.
         """
-        cells = []
-        for k in sorted(self.offsets.keys()):
-            position = [sum(x) for x in zip(cell.index, k)]
-            for i in range(len(position)):
-                if self.wrap_around:
-                    position[i] = position[i] % self.grid.shape[i]
-                elif i < 0 or i >= self.grid.shape[i]:
-                    break
+        indices = []
+        for key in sorted(self.offsets.keys()):
+            if self.wrap_around:
+                f_index = (key + index) % len(grid.flat)
+                indices.append((f_index, grid.flat[f_index], self.offsets[key]))
             else:
-                cells.append((self.grid[tuple(position)], self.offsets[k]))
+                pass
 
-        return cells
+        return indices
 
 
-    def extend(self, offsets, strict=False):
+    def extend(self, offsets, grid, strict=False):
         """
         Adds new offsets to the instance member offsets.
 
         We complain if the strict flag is set to True and an offset has already been declared with a different value.
+        Note also that all offsets are indices of the flattened matrix. This allows for quick row indexing as opposed
+        to individual coordinates.
         """
+        f_offsets = {ct.flatten(k, grid): v for k, v in offsets.items()}
         if not strict:
-            self.offsets.update(offsets)
+            self.offsets.update(f_offsets)
         else:
-            for k in offsets.keys():
+            for k in f_offsets.keys():
                 value = self.offsets.get(k, None)
                 if value is None:
                     self.offsets[k] = offsets[k]
@@ -125,12 +87,12 @@ class Neighborhood:
         """
         offsets = {}
         variants = ([-1, 0, 1],) * len(grid.shape)
-        for current in itertools.product(*variants):
+        for current in it.product(*variants):
             if any(current):
                 offsets[current] = value
 
-        m_neighborhood = cls(grid, wrap_around)
-        m_neighborhood.extend(offsets)
+        m_neighborhood = cls(wrap_around)
+        m_neighborhood.extend(offsets, grid)
 
         return m_neighborhood
 
@@ -154,8 +116,8 @@ class Neighborhood:
                 offsets[tuple(variant)] = value
             variant[i] = 0
 
-        n_neighborhood = cls(grid, wrap_around)
-        n_neighborhood.extend(offsets)
+        n_neighborhood = cls(wrap_around)
+        n_neighborhood.extend(offsets, grid)
 
         return n_neighborhood
 
