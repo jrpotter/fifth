@@ -61,7 +61,7 @@ class Neighborhood:
             return 0
 
 
-    def __init__(self):
+    def __init__(self, grid, wrap_around=True):
         """
         Sets up an empty neighborhood.
 
@@ -69,10 +69,12 @@ class Neighborhood:
         Note the offsets have a tuple as a key representing the position being offsetted by, and as a value,
         the current state the given cell at the offset is checked to be.
         """
+        self.grid = grid
         self.offsets = {}
+        self.wrap_around = wrap_around
 
 
-    def neighbors(self, cell, grid, wrap_around=True):
+    def neighbors(self, cell):
         """
         Returns all cells in the given neighborhood.
 
@@ -83,12 +85,12 @@ class Neighborhood:
         for k in sorted(self.offsets.keys()):
             position = [sum(x) for x in zip(cell.index, k)]
             for i in range(len(position)):
-                if wrap_around:
-                    position[i] = position[i] % grid.shape[i]
-                elif i < 0 or i >= grid.shape[i]:
+                if self.wrap_around:
+                    position[i] = position[i] % self.grid.shape[i]
+                elif i < 0 or i >= self.grid.shape[i]:
                     break
             else:
-                cells.append((grid[tuple(position)], self.offsets[k]))
+                cells.append((self.grid[tuple(position)], self.offsets[k]))
 
         return cells
 
@@ -111,7 +113,7 @@ class Neighborhood:
 
 
     @classmethod
-    def moore(cls, dimen, value=True):
+    def moore(cls, grid, wrap_around=True, value=True):
         """
         Returns a neighborhood corresponding to the Moore neighborhood.
 
@@ -122,19 +124,19 @@ class Neighborhood:
         Note the center cell is excluded, so the total number of offsets are 3^N - 1.
         """
         offsets = {}
-        variants = ([-1, 0, 1],) * dimen
+        variants = ([-1, 0, 1],) * len(grid.shape)
         for current in itertools.product(*variants):
             if any(current):
                 offsets[current] = value
 
-        m_neighborhood = cls()
+        m_neighborhood = cls(grid, wrap_around)
         m_neighborhood.extend(offsets)
 
         return m_neighborhood
 
 
     @classmethod
-    def neumann(cls, dimen, value=True):
+    def neumann(cls, grid, wrap_around=True, value=True):
         """
         Returns a neighborhood corresponding to the Von Neumann neighborhood.
 
@@ -145,14 +147,15 @@ class Neighborhood:
         Note the center cell is excluded, so the total number of offsets are 2N.
         """
         offsets = {}
-        variant = [0] * dimen
+        variant = [0] * len(grid.shape)
         for i in range(len(variant)):
             for j in [-1, 1]:
                 variant[i] = j
                 offsets[tuple(variant)] = value
             variant[i] = 0
 
-        n_neighborhood = cls()
+        n_neighborhood = cls(grid, wrap_around)
         n_neighborhood.extend(offsets)
 
         return n_neighborhood
+
