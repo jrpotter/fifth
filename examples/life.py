@@ -1,4 +1,5 @@
 """
+B3/S34: Game of Life
 
 @author: jrpotter
 @date: June 01, 2015
