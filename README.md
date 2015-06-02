@@ -13,3 +13,5 @@ The following uses numpy/matplotlib underneath, and will ideally incorporate the
 * 2D and 3D cellular automata
 * Timing specifications for granular viewing
 * Echoing and Tracing (for 2D)
+
+![alt tag](https://raw.githubusercontent.com/jrpotter/fifth/master/rsrc/demo.gif)
