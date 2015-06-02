@@ -99,7 +99,6 @@ class CAM:
             fig.canvas.draw()
 
         ani.FuncAnimation(fig, animate, interval=clock)
-
         plt.axis('off')
         plt.show()
 
