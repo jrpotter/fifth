@@ -91,12 +91,12 @@ class CAM:
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
 
-        mshown = plt.matshow(self.master, fig.number)
+        mshown = plt.matshow(self.master, fig.number, cmap='Greys')
 
         def animate(frame):
             self.tick(rules, *args)
             mshown.set_array(self.master)
-            fig.canvas.draw()
+            return [mshown]
 
         ani.FuncAnimation(fig, animate, interval=clock)
         plt.axis('off')

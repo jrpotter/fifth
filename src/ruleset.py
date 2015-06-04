@@ -176,7 +176,6 @@ class Ruleset:
         for config in self.configurations:
 
             # Determine the correct function to use
-            vfunc = None
             if self.method == Ruleset.Method.MATCH:
                 vfunc = self._matches
             elif self.method == Ruleset.Method.TOLERATE:
@@ -187,12 +186,9 @@ class Ruleset:
                 vfunc = lambda *args: True
 
             # Apply the function if possible
-            if vfunc is not None:
-                passed, state = config.passes(f_index, grid, vfunc, *args)
-                if passed:
-                    return state
-            else:
-                break
+            passed, state = config.passes(f_index, grid, vfunc, *args)
+            if passed:
+                return state
 
         return grid.flat[f_index]
 
