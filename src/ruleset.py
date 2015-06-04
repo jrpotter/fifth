@@ -12,22 +12,7 @@ import itertools as it
 
 import numpy as np
 
-
-
-def flatten(coordinates, grid):
-    """
-    Given the coordinates of a matrix, returns the index of the flat matrix.
-
-    This is merely a convenience function to convert between N-dimensional space to 1D.
-    """
-    index = 0
-    gridprod = 1
-    for i in reversed(range(len(coordinates))):
-        index += coordinates[i] * gridprod
-        gridprod *= grid.shape[i]
-
-    return index
-
+import util
 
 
 class Configuration:
@@ -39,20 +24,11 @@ class Configuration:
     the next state of a cell depending on a configuration.
     """
 
-    # Possible states a cell can take
-    #
-    # If a configuration passes, the cell's state will be on or off if ON or OFF was passed respectively.
-    # If IGNORE, then the state remains the same, but no further configurations will be checked by the
-    # ruleset.
-    ON  = 1
-    OFF = 0
-
-
     def __init__(self, grid, next_state, offsets={}):
         """
 
         @next_state: Represents the next state of a cell given a configuration passes.
-                     This should be an [ON|OFF|Function that returns ON or Off]
+                     This should be an [0|1|Function that returns 0 or 1]
 
         @offsets:    A dictionary of offsets containing N-tuple keys and [-1, 0, 1] values.
                      Note N must be the same dimension as the grid's dimensions, as it specifies
@@ -68,11 +44,10 @@ class Configuration:
         f_offsets = []
         for k, v in offsets.items():
             states.append(v)
-            f_offsets.append(flatten(k, grid))
+            f_offsets.append(util.flatten(k, grid))
 
         self.states = np.array(states)
         self.offsets = np.array(f_offsets)
-
 
     def passes(self, f_index, grid, vfunc, *args):
         """
@@ -96,9 +71,8 @@ class Configuration:
         else:
             return (success, self.next_state)
 
-
     @classmethod
-    def moore(cls, grid, value=ON):
+    def moore(cls, grid, value=1):
         """
         Returns a neighborhood corresponding to the Moore neighborhood.
 
@@ -116,9 +90,8 @@ class Configuration:
 
         return offsets
 
-
     @classmethod
-    def neumann(cls, grid, value=ON):
+    def neumann(cls, grid, value=1):
         """
         Returns a neighborhood corresponding to the Von Neumann neighborhood.
 
@@ -137,7 +110,6 @@ class Configuration:
             variant[i] = 0
 
         return offsets
-
 
 
 class Ruleset:
@@ -168,10 +140,10 @@ class Ruleset:
           the state of the cell's neighbors.
 
         """
-        MATCH    = 0
-        TOLERATE = 1
-        SATISFY  = 2
-
+        MATCH       = 0
+        TOLERATE    = 1
+        SATISFY     = 2
+        ALWAYS_PASS = 3
 
     def __init__(self, method):
         """
@@ -181,14 +153,12 @@ class Ruleset:
         self.method = method
         self.configurations = []
 
-
     def addConfiguration(self, grid, next_state, offsets):
         """
         Creates a configuration and saves said configuration.
         """
         config = Configuration(grid, next_state, offsets)
         self.configurations.append(config)
-
 
     def applyTo(self, f_index, grid, *args):
         """
@@ -213,6 +183,8 @@ class Ruleset:
                 vfunc = self._tolerates
             elif self.method == Ruleset.Method.SATISFY:
                 vfunc = self._satisfies
+            elif self.method == Ruleset.Method.ALWAYS_PASS:
+                vfunc = lambda *args: True
 
             # Apply the function if possible
             if vfunc is not None:
@@ -224,7 +196,6 @@ class Ruleset:
 
         return grid.flat[f_index]
 
-
     def _matches(self, f_index, f_grid, indices, states):
         """
         Determines that neighborhood matches expectation exactly.
@@ -232,7 +203,6 @@ class Ruleset:
         Note this functions like the tolerate method with a tolerance of 1.
         """
         return not np.count_nonzero(f_grid[indices] ^ states)
-
 
     def _tolerates(self, f_index, f_grid, indices, states, tolerance):
         """
@@ -244,7 +214,6 @@ class Ruleset:
         non_matches = np.count_nonzero(f_grid[inices] ^ states)
         return (non_matches / len(f_grid)) >= tolerance
 
-
     def _satisfies(self, f_index, f_grid, indices, states, valid_func):
         """
         Allows custom function to relay next state of given cell.
@@ -253,5 +222,4 @@ class Ruleset:
         the expected state as declared in the Neighborhood, as well as the grid and cell in question.
         """
         return valid_func(f_index, f_grid, indices, states)
-
 

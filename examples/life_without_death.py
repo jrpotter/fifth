@@ -10,22 +10,11 @@ if __name__ == '__main__':
     sys.path.append(os.path.abspath('src'))
 
     import cam
+    import util as u
     import ruleset as rs
 
-
-    def lwd(f_index, f_grid, indices, states, *args):
-        total = sum(f_grid[indices])
-        if not f_grid[f_index] and total == 3:
-            return rs.Configuration.ON
-        else:
-            return f_grid[f_index]
-
-
     c = cam.CAM(1, 100, 2)
+    p = u.CAMParser('B3/S012345678', c)
+
     c.randomize()
-
-    r = rs.Ruleset(rs.Ruleset.Method.SATISFY)
-    offsets = rs.Configuration.moore(c.master)
-    r.addConfiguration(c.master, lwd, offsets)
-
-    c.start_plot(100, r, lambda *args: True)
+    c.start_plot(100, p.ruleset)
