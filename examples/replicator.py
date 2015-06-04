@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
 
     c = cam.CAM(1, 100, 2)
-    c.master[49:51, 49:51] = rs.Configuration.ON
+    c.randomize()
 
     r = rs.Ruleset(rs.Ruleset.Method.SATISFY)
     offsets = rs.Configuration.moore(c.master)
