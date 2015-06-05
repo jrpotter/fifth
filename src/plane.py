@@ -24,27 +24,22 @@ class Plane:
     numpy grid, without the same bloat as a straightforward N-dimensional grid of booleans for instance.
     """
 
-    def __init__(self, size, N):
+    def __init__(self, shape):
         """
         Construction of a plane. There are three cases:
 
-        If N == 0: We have an undefined plane. Nothing is in it.
-        If N == 1: We have a 1D plane. This is represented by a single number.
-        Otherwise: We have an N-D plane. Everything operates as expected.
-
-        If N happens to be negative, an exception is thrown.
+        If shape is the empty tuple, we have an undefined plane. Nothing is in it.
+        If shape is length 1, we have a 1D plane. This is represented by a single number.
+        Otherwise, we have an N-D plane. Everything operates as expected.
         """
-        if N < 0:
-            raise ValueError('Negative dimension nonsensical')
-        elif N == 0:
-            self.shape = ()
-            self.grid = np.array([], dtype=np.object)
-        elif N == 1:
-            self.shape = (size,)
-            self.grid = np.array([0], dtype=np.object)
+        self.shape = tuple(shape)
+
+        if len(shape) == 0:
+            self.grid = None
+        elif len(shape) == 1:
+            self.grid = 0
         else:
-            self.shape = (size,) * N
-            self.grid = np.zeros((size**(N-1),), dtype=np.object)
+            self.grid = np.zeros((np.prod(shape[:-1]),), dtype=np.object)
 
     def __getitem__(self, idx):
         """
@@ -57,7 +52,7 @@ class Plane:
 
         # Passed in coordinates, access incrementally
         # Note this could be a tuple of slices or numbers
-        if type(idx) in [tuple]:
+        if type(idx) is tuple:
             tmp = self
             for i in idx:
                 tmp = tmp[i]
@@ -65,23 +60,27 @@ class Plane:
 
         # Reached last dimension, return bits instead
         elif len(self.shape) == 1:
-            bits = bm.bits_of(self.grid[0], self.shape[0])[idx]
+            bits = bm.bits_of(self.grid, self.shape[0])[idx]
             if isinstance(idx, slice):
                 return list(map(int, bits))
             else:
                 return int(bits)
 
         # Simply relay to numpy methods
-        # Note this doesn't necessarily return a grid in the same notion but
+        # We check if we reach an actual number as opposed to a tuple
         # does still allow further indexing if desired. In addition, we can
         # be confident idx is either a list or a number so the final dimension
         # cannot be accessed from here
-        # TODO: Reconsider this...
         else:
-            full = np.reshape(self.grid, self.shape[:-1])[idx]
-            tmp = cls(1, len(self.shape) - 1)
-            tmp.grid = full.flat
-            return tmp
+            tmp = np.reshape(self.grid, self.shape[:-1])[idx]
+            try:
+                plane = Plane(tmp.shape + self.shape[-1:])
+                plane.grid = tmp.flat
+            except AttributeError:
+                plane = Plane(self.shape[-1:])
+                plane.grid = tmp
+
+            return plane
 
     def _flatten(coordinates):
         """
