@@ -17,4 +17,4 @@ if __name__ == '__main__':
     p = u.CAMParser('B3/S23', c)
 
     c.randomize()
-    c.start_plot(200, p.ruleset)
+    c.start_plot(400, p.ruleset)

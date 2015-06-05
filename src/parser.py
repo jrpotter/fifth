@@ -10,21 +10,6 @@ import ruleset as rs
 import exceptions as ce
 
 
-def flatten(coordinates, grid):
-    """
-    Given the coordinates of a matrix, returns the index of the flat matrix.
-
-    This is merely a convenience function to convert between N-dimensional space to 1D.
-    """
-    index = 0
-    gridprod = 1
-    for i in reversed(range(len(coordinates))):
-        index += coordinates[i] * gridprod
-        gridprod *= grid.shape[i]
-
-    return index
-
-
 class CAMParser:
     """
     The following builds rulesets based on the passed string.
