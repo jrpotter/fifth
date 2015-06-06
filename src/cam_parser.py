@@ -99,7 +99,7 @@ class CAMParser:
         """
         x, y = list(map(int, x)), list(map(int, y))
         def next_state(plane, neighborhood, *args):
-            if plane.grid.flat[neighborhood.flat_index]:
+            if plane.grid.flat[neighborhood.flat_index][neighborhood.bit_index]:
                 return int(neighborhood.total in x)
             else:
                 return int(neighborhood.total in y)
