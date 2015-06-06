@@ -54,7 +54,7 @@ class Ruleset:
         self.method = method
         self.configurations = []
 
-    def applyTo(self, plane, *args):
+    def apply_to(self, plane, *args):
         """
         Depending on the set method, applies ruleset to each cell in the plane.
 
@@ -63,6 +63,7 @@ class Ruleset:
                arg should be a function returning a BOOL, which takes in a current cell's value, and the
                value of its neighbors.
         """
+        next_grid = []
 
         # Determine which function should be used to test success
         if self.method == Ruleset.Method.MATCH:
@@ -74,57 +75,56 @@ class Ruleset:
         elif self.method == Ruleset.Method.ALWAYS_PASS:
             vfunc = lambda *args: True
 
-        # Find the set of neighborhoods for each given configuration
-        neighborhoods = [self._construct_neighborhoods(plane, config) for c in self.configurations]
-        for f_idx, value in enumerate(self.plane.flat):
-            for b_offset in len(self.plane.shape[-1]):
-                for c_idx, config in enumerate(self.configurations):
-                    n_idx = f_idx * self.plane.shape[-1] + b_offset
-                    passed, state = config.passes(neighborhoods[c_idx][n_idx], vfunc, *args)
-                    if passed:
-                        plane[f_idx][b_offset] = state
-                        break
+        # We apply our method a row at a time, to take advantage of being able to sum the totals
+        # of a neighborhood in a batch manner. We try to apply a configuration to every bit of a
+        # row, mark those that fail, and try the next configuration on the failed bits until
+        # either all bits pass or configurations are exhausted
+        for flat_index, value in enumerate(plane.grid.flat):
 
-    def _construct_neighborhoods(self, plane, config):
-        """
-        Construct neighborhoods
+            next_row = bitarray(self.N)
+            to_update = range(0, self.N)
+            for config in self.configurations:
 
-        After profiling with a previous version, I found that going through each index and totaling the number
-        of active states was taking much longer than I liked. Instead, we compute as many neighborhoods as possible
-        simultaneously, avoiding explicit summation via the "sum" function, at least for each state separately.
+                next_update = []
 
-        Because the states are now represented as numbers, we instead convert each number to their binary representation
-        and add the binary representations together. We do this in chunks of 9, depending on the number of offsets, so
-        no overflowing of a single column can occur. We can then find the total of the ith neighborhood by checking the
-        sum of the ith index of the summation of every 9 chunks of numbers (this is done a row at a time).
+                # After profiling with a previous version, I found that going through each index and totaling the number
+                # of active states was taking much longer than I liked. Instead, we compute as many neighborhoods as possible
+                # simultaneously, avoiding explicit summation via the "sum" function, at least for each state separately.
+                #
+                # Because the states are now represented as numbers, we instead convert each number to their binary representation
+                # and add the binary representations together. We do this in chunks of 9, depending on the number of offsets, so
+                # no overflowing of a single column can occur. We can then find the total of the ith neighborhood by checking the
+                # sum of the ith index of the summation of every 9 chunks of numbers (this is done a row at a time).
+                neighboring = []
+                for flat_offset, bit_offset in config.offsets:
+                    neighbor = str(plane.grid.flat[flat_index + flat_offset])
+                    neighboring.append(int(neighbor[bit_offset+1:] + neighbor[:bit_offset]))
 
-        TODO: Config offsets should be flat offset, bit offset
-        """
-        neighborhoods = []
+                # Chunk into groups of 9 and sum all values
+                # These summations represent the total number of active states in a given neighborhood
+                totals = [0] * self.N
+                chunks = map(sum, [offset_totals[i:i+9] for i in range(0, len(neighboring), 9)])
+                for chunk in chunks:
+                    totals = list(map(sum, zip(totals, chunk)))
 
-        for f_idx, row in enumerate(plane.grid.flat):
+                # Apply change to all successful configurations
+                for bit_index in to_update:
+                    neighborhood = Neighborhood(flat_index, bit_index, totals[bit_index])
+                    success, state = config.passes(neighborhood, vfunc, *args)
+                    if success:
+                        next_row[bit_index] = state
+                    else:
+                        next_update.append(bit_index)
 
-            # Construct the current neighborhoods of each bit beforehand
-            row_neighborhoods = [Neighborhood(f_idx, i) for i in range(plane.shape[-1])]
+                # Apply next configuration to given indices
+                to_update = next_update
 
-            # Note: config's offsets contain the index of the number in the plane's flat iterator
-            # and the offset of the bit referring to the actual state in the given neighborhood
-            offset_totals = []
-            for f_offset, b_offset in config.offsets:
-                row_offset = plane.f_bits(f_idx + f_offset)
-                offset_totals.append(int(row_offset[b_offset+1:] + row_offset[:b_offset]))
+            # We must update all states after each next state is computed
+            next_grid.append(next_row)
 
-            # Chunk into groups of 9 and sum all values
-            # These summations represent the total number of states in a given neighborhood
-            chunks = map(sum, [offset_totals[i:i+9] for i in range(0, len(offset_totals), 9)])
-            for chunk in chunks:
-                for i in range(len(row_neighborhoods)):
-                    row_neighborhoods[i].total += int(chunk[i])
-
-            # Lastly, keep neighborhoods 1D, to easily relate to the flat plane grid
-            neighborhoods += row_neighborhoods
-
-        return neighborhoods
+        # Can now apply the updates simultaneously
+        for i in range(plane.grid.size):
+            plane.grid.flat[i] = next_grid[i]
 
     def _matches(self, f_index, f_grid, indices, states):
         """

@@ -13,7 +13,9 @@ binary expansion will be 100 bits long (and padded with 0's if necessary).
 @date: June 05, 2015
 """
 import numpy as np
-import bitmanip as bm
+
+from bitarray import bitarray
+
 
 class Plane:
     """
@@ -24,7 +26,7 @@ class Plane:
     numpy grid, without the same bloat as a straightforward N-dimensional grid of booleans for instance.
     """
 
-    def __init__(self, shape):
+    def __init__(self, shape, grid = None):
         """
         Construction of a plane. There are three cases:
 
@@ -32,81 +34,60 @@ class Plane:
         If shape is length 1, we have a 1D plane. This is represented by a single number.
         Otherwise, we have an N-D plane. Everything operates as expected.
         """
+        self.grid = grid
         self.shape = shape
+        self.N = 0 if not len(shape) else shape[-1]
 
-        if len(shape) == 0:
-            self.grid = None
-        elif len(shape) == 1:
-            self.grid = 0
-        else:
-            self.grid = np.zeros(shape[:-1], dtype=np.object)
+        if self.grid is None:
+            if len(shape) == 1:
+                self.grid = self.N * bitarray('0')
+            else:
+                self.grid = np.empty(shape[:-1], dtype=np.object)
+                for i in range(self.grid.size):
+                    self.grid.flat[i] = bitarray(self.N)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, index):
         """
         Indices supported are the same as those of the numpy array, except for when accessing an individual bit.
 
         When reaching the "last" dimension of the given array, we access the bit of the number at the second
         to last dimension, since we are working in (N-1)-dimensional space. Unless this last dimension is reached,
         we always return a plane object (otherwise an actual 0 or 1).
+
+        Note this function is much slower than accessing the grid directly. To forsake some convenience for the
+        considerable speed boost is understandable; access by plane only for this convenience.
         """
 
-        # Passed in coordinates, access incrementally
-        # Note this could be a tuple of slices or numbers
-        if type(idx) is tuple:
-            tmp = self
-            for i in idx:
-                tmp = tmp[i]
-            return tmp
-
-        # Reached last dimension, return bits instead
-        elif len(self.shape) == 1:
-            bits = bm.bits_of(self.grid, self.shape[0])[idx]
-            if isinstance(idx, slice):
-                return list(map(int, bits))
+        # Given coordinates of a grid. This may or may not access the last dimension.
+        # If it does not, can simply return the new plane given the subset accessed.
+        # If it does, we access up to the bitarray, then access the desired bit(s)
+        if type(index) is tuple:
+            if len(index) == len(self.shape):
+                b_array = self.grid[index[:-1]]
+                return b_array[index[-1]]
             else:
-                return int(bits)
+                subgrid = self.grid[index]
+                return Plane(subgrid.shape + (self.N,), subgrid)
 
-        # Simply relay to numpy methods
-        # We check if we encounter a list or number as opposed to a tuple, and allow further indexing if desired.
-        else:
-            tmp = self.grid[idx]
-            try:
-                plane = Plane(tmp.shape + self.shape[-1:])
-                plane.grid = tmp.flat
-            except AttributeError:
-                plane = Plane(self.shape[-1:])
-                plane.grid = tmp
+        # If we've reached the last dimension, the grid of the plane is just a bitarray
+        # (we remove an additional dimension and instead store the bitarray for space's sake).
+        # If a list of elements are passed, we must access them individually (bitarray does
+        # not have built in support for this).
+        elif len(self.shape) == 1:
+            if type(index) is list:
+                return list(map(lambda x: self.grid[x], index))
+            else:
+                return self.grid[index]
 
-            return plane
-
-    def f_bits(self, f_index, str_type=True):
-        """
-        Return the binary representation of the given number at the supplied index.
-
-        If the user wants a string type, we make sure to pad the returned number to reflect
-        the actual states at the given index.
-        """
-        value = bin(self.planes[0].flat[f_index])[2:]
-        if not str_type:
-            return int(value)
-        else:
-            return "{}{}".format("0" * (self.shape[-1] - len(value)), value)
-
-
-    def _flatten(coordinates):
-        """
-        Given the coordinates of a matrix, returns the index of the flat matrix.
-
-        This is merely a convenience function to convert between N-dimensional space to 1D.
-        TODO: Delete this method?
-        """
-        index = 0
-        gridprod = 1
-        for i in reversed(range(len(coordinates))):
-            index += coordinates[i] * gridprod
-            gridprod *= self.dimen[i]
-
-        return index
+        # Any other means of indexing simply indexes the grid as expected, and wraps
+        # the result in a plane object for consistent accessing. An attribute error
+        # can occur once we reach the last dimension, and try to determine the shape
+        # of a bitarray
+        tmp = self.grid[index]
+        try:
+            return Plane(tmp.shape + (self.N,), tmp)
+        except AttributeError:
+            return Plane((self.N,), tmp)
 
     def randomize(self):
         """
@@ -117,14 +98,10 @@ class Plane:
         """
         if len(self.shape) > 0:
             import random as r
-            max_u = bm.max_unsigned(self.shape[-1])
+            max_u = 2**self.N - 1
             if len(self.shape) == 1:
                 self.grid = r.randrange(0, max_u)
             else:
-                self.grid = np.array([r.randrange(0, max_u) for i in range(len(self.grid))])
+                tmp = np.array([r.randrange(0, max_u) for i in range(len(self.grid))])
+                self.grid = tmp.reshape(self.grid.shape)
 
-    def bitmatrix(self):
-        """
-
-        """
-        pass
