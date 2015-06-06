@@ -9,11 +9,6 @@ all methods needed (i.e. supported) to interact/configure the cellular automata 
 @date: June 01, 2015
 """
 import time
-import copy
-
-import ruleset as rs
-
-import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as ani
 
@@ -34,33 +29,18 @@ class CAM:
 
     def __init__(self, cps=1, states=100, dimen=2):
         """
-
         @cps:    Cell planes. By default this is 1, but can be any positive number. Any non-positive number
                  is assumed to be 1.
-
         @states: The number of cells that should be included in any dimension. The number of total states
                  will be cps * states^dimen
-
         @dimen:  The dimensions of the cellular automata. For example, for an N-tuple array, the dimension is N.
-
         """
         plane_count = max(cps, 1)
         grid_dimen = (states,) * dimen
 
-        self.planes = np.zeros((plane_count,) + grid_dimen, dtype='int32')
-        self.master = self.planes[0]
-
-
-    def randomize(self, propagate=True):
-        """
-        Set the master grid to a random configuration.
-
-        If propagate is set to True, also immediately change all other cell planes to match.
-        """
-        self.master[:] = np.random.random_integers(0, 1, self.master.shape)
-        for plane in self.planes[1:]:
-            plane[:] = self.master
-
+        self.planes = [Plane(grid_dimen) for i in range(cps)]
+        self.ticks = [(0, 1)]
+        self.total = 0
 
     def tick(self, rules, *args):
         """
@@ -71,12 +51,10 @@ class CAM:
         is placed into the master grid. Depending on the timing specifications set by the user, this
         may also change secondary cell planes (the master is always updated on each tick).
         """
-        tmp = np.copy(self.master)
-        for i in range(len(self.master.flat)):
-            tmp.flat[i] = rules.applyTo(i, self.master, *args)
-
-        self.master[:] = tmp
-
+        self.total += 1
+        for i, j in self.ticks:
+            if self.total % j == 0:
+                rules.applyTo(self.planes[i], *args)
 
     def start_plot(self, clock, rules, *args):
         """
@@ -91,17 +69,16 @@ class CAM:
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
 
-        mshown = plt.matshow(self.master, fig.number, cmap='Greys')
+        mshown = plt.matshow(self.planes[0].bits(), fig.number, cmap='Greys')
 
         def animate(frame):
             self.tick(rules, *args)
-            mshown.set_array(self.master)
+            mshown.set_array(self.planes[0].bits())
             return [mshown]
 
         ani.FuncAnimation(fig, animate, interval=clock)
         plt.axis('off')
         plt.show()
-
 
     def start_console(self, clock, rules, *args):
         """
@@ -111,8 +88,7 @@ class CAM:
         TODO: Incorporate curses, instead of just printing repeatedly.
         """
         while True:
-            print(self.master)
+            print(self.planes[0].bits())
             time.sleep(clock / 1000)
             self.tick(rules, *args)
-
 

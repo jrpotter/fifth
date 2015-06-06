@@ -61,22 +61,53 @@ class Ruleset:
         config = Configuration(grid, next_state, offsets)
         self.configurations.append(config)
 
-    def applyTo(self, f_index, grid, *args):
+    def applyTo(self, plane, *args):
         """
-        Depending on a given method, applies ruleset to a cell.
+        Depending on the set method, applies ruleset to each cell in the plane.
 
-        @cell_index: The index of the cell in question, as offset by self.grid.flat. That means the index should be
-                     a single number (not a tuple!).
+        Note we first compute all neighborhoods in a batch manner and then test that a configuration
+        passes on the supplied neighborhood.
 
-        @args:       If our method is TOLERATE, we pass in a value in set [0, 1]. This specifies the threshold between a
-                     passing (i.e. percentage of matches in a configuration is > arg) and failing. If our method is SATISFY,
-                     arg should be a function returning a BOOL, which takes in a current cell's value, and the
-                     value of its neighbors.
-
+        @args: If our method is TOLERATE, we pass in a value in set [0, 1]. This specifies the threshold between a
+               passing (i.e. percentage of matches in a configuration is > arg) and failing. If our method is SATISFY,
+               arg should be a function returning a BOOL, which takes in a current cell's value, and the
+               value of its neighbors.
         """
+        master = plane.grid.flat
+
         for config in self.configurations:
 
-            # Determine the correct function to use
+            # Construct neighborhoods
+            #
+            # After profiling with a previous version, I found that going through each index and totaling the number
+            # of active states was taking much longer than I liked. Instead, we compute as many neighborhoods as possible
+            # simultaneously, avoiding explicit summation via the "sum" function, at least for each state separately.
+            #
+            # Because the states are now represented as numbers, we instead convert each number to their binary representation
+            # and add the binary representations together. We do this in chunks of 9, depending on the number of offsets, so
+            # no overflowing of a single column can occur. We can then find the total of the ith neighborhood by checking the
+            # sum of the ith index of the summation of every 9 chunks of numbers (this is done a row at a time).
+
+            # TODO: Config offsets should be flat index, bit offset
+
+
+
+            neighborhoods = []
+
+            values = []
+            for f_index, offset in config.offsets:
+                val = plane.f_bits([f_index])
+                values.append(int(val[offset+1:] + val[:offset]))
+
+            # Chunk into groups of 9 and sum all values
+            chunks = [values[i:i+9] for i in range(0, len(values), 9)]
+            summands = map(sum, chunks)
+
+            # Construct neighborhoods for each value in list
+
+
+
+
             if self.method == Ruleset.Method.MATCH:
                 vfunc = self._matches
             elif self.method == Ruleset.Method.TOLERATE:
@@ -91,6 +122,7 @@ class Ruleset:
             if passed:
                 return state
 
+        # If no configuration passes, we leave the state unchanged
         return grid.flat[f_index]
 
     def _matches(self, f_index, f_grid, indices, states):
