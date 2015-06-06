@@ -65,16 +65,6 @@ class Ruleset:
         """
         next_grid = []
 
-        # Determine which function should be used to test success
-        if self.method == Ruleset.Method.MATCH:
-            vfunc = self._matches
-        elif self.method == Ruleset.Method.TOLERATE:
-            vfunc = self._tolerates
-        elif self.method == Ruleset.Method.SATISFY:
-            vfunc = self._satisfies
-        elif self.method == Ruleset.Method.ALWAYS_PASS:
-            vfunc = lambda *args: True
-
         # We apply our method a row at a time, to take advantage of being able to sum the totals
         # of a neighborhood in a batch manner. We try to apply a configuration to every bit of a
         # row, mark those that fail, and try the next configuration on the failed bits until
@@ -97,8 +87,9 @@ class Ruleset:
                 # sum of the ith index of the summation of every 9 chunks of numbers (this is done a row at a time).
                 neighboring = []
                 for flat_offset, bit_offset in config.offsets:
-                    neighbor = str(plane.grid.flat[flat_index + flat_offset])
-                    neighboring.append(int(neighbor[bit_offset+1:] + neighbor[:bit_offset]))
+                    neighbor = plane.grid.flat[flat_index + flat_offset]
+                    cycled = neighbor[bit_offset:] + neighbor[:bit_offset]
+                    neighboring.append(int(cycled.to01()))
 
                 # Chunk into groups of 9 and sum all values
                 # These summations represent the total number of active states in a given neighborhood
@@ -106,6 +97,16 @@ class Ruleset:
                 chunks = map(sum, [offset_totals[i:i+9] for i in range(0, len(neighboring), 9)])
                 for chunk in chunks:
                     totals = list(map(sum, zip(totals, chunk)))
+
+                # Determine which function should be used to test success
+                if self.method == Ruleset.Method.MATCH:
+                    vfunc = config.matches
+                elif self.method == Ruleset.Method.TOLERATE:
+                    vfunc = config.tolerates
+                elif self.method == Ruleset.Method.SATISFY:
+                    vfunc = config.satisfies
+                elif self.method == Ruleset.Method.ALWAYS_PASS:
+                    vfunc = lambda *args: True
 
                 # Apply change to all successful configurations
                 for bit_index in to_update:
@@ -126,30 +127,4 @@ class Ruleset:
         for i in range(plane.grid.size):
             plane.grid.flat[i] = next_grid[i]
 
-    def _matches(self, f_index, f_grid, indices, states):
-        """
-        Determines that neighborhood matches expectation exactly.
-
-        Note this functions like the tolerate method with a tolerance of 1.
-        """
-        return not np.count_nonzero(f_grid[indices] ^ states)
-
-    def _tolerates(self, f_index, f_grid, indices, states, tolerance):
-        """
-        Determines that neighborhood matches expectation within tolerance.
-
-        We see that the percentage of actual matches are greater than or equal to the given tolerance level. If so, we
-        consider this cell to be alive. Note tolerance must be a value 0 <= t <= 1.
-        """
-        non_matches = np.count_nonzero(f_grid[indices] ^ states)
-        return (non_matches / len(f_grid)) >= tolerance
-
-    def _satisfies(self, f_index, f_grid, indices, states, valid_func):
-        """
-        Allows custom function to relay next state of given cell.
-
-        The passed function is supplied the list of 2-tuple elements, of which the first is a Cell and the second is
-        the expected state as declared in the Neighborhood, as well as the grid and cell in question.
-        """
-        return valid_func(f_index, f_grid, indices, states)
 

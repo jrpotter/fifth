@@ -1,13 +1,32 @@
 """
-A collection of utilities that can ease construction of CAMs.
+Parsers CAM languages for quick construction of CAMs.
 
-@author: jrpotter
+For example, when considering CAMs of life, most follow the same formula; check
+the total number of cells in a given neighborhood and if there are a certain
+number around an off cell, turn it on, and vice versa. Thus the parser takes
+in a generic language regarding this and constructs the necessary functions for
+the user.
+
 @date: June 4th, 2015
 """
 import re
 
-import ruleset as rs
-import exceptions as ce
+import ruleset as r
+import configuration as c
+
+
+class InvalidFormat(Exception):
+    """
+    Called when parsing an invalid format.
+
+    For example, in MCell and RLE, numbers should be in ascending order.
+    """
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
 
 
 class CAMParser:
@@ -33,28 +52,30 @@ class CAMParser:
         @offsets: Represents the Moore neighborhood corresponding to the given CAM
         """
         self.sfunc = None
-        self.offsets = rs.Configuration.moore(cam.master)
-        self.ruleset = rs.Ruleset(rs.Ruleset.Method.ALWAYS_PASS)
+        self.offsets = c.Configuration.moore(cam.master)
+        self.ruleset = r.Ruleset(rsRuleset.Method.ALWAYS_PASS)
 
         if re.match(CAMParser.MCELL_FORMAT, notation):
             x, y = notation.split('/')
             if all(map(self._numasc, [x, y])):
                 self.sfunc = self._mcell(x, y)
             else:
-                raise ce.InvalidFormat("Non-ascending values in MCELL format")
+                raise InvalidFormat("Non-ascending values in MCELL format")
 
         elif re.match(CAMParser.RLE_FORMAT, notation):
             B, S = map(lambda x: x[1:], notation.split('/'))
             if all(map(self._numasc, [B, S])):
                 self.sfunc = self._mcell(S, B)
             else:
-                raise ce.InvalidFormat("Non-ascending values in RLE format")
+                raise InvalidFormat("Non-ascending values in RLE format")
 
         else:
-            raise ce.InvalidFormat("No supported format passed to parser.")
+            raise InvalidFormat("No supported format passed to parser.")
 
         # Add configuration to given CAM
-        self.ruleset.addConfiguration(cam.master, self.sfunc, self.offsets)
+        config = c.Configuration(self.sfunc, plane=cam.master, offsets=self.offsets)
+        self.ruleset.configurations.append(config)
+
 
     def _numasc(self, value):
         """
@@ -64,6 +85,7 @@ class CAMParser:
             return ''.join(sorted(value)) == value
         else:
             return False
+
 
     def _mcell(self, x, y):
         """

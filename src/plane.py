@@ -46,6 +46,7 @@ class Plane:
                 for i in range(self.grid.size):
                     self.grid.flat[i] = bitarray(self.N)
 
+
     def __getitem__(self, index):
         """
         Indices supported are the same as those of the numpy array, except for when accessing an individual bit.
@@ -89,6 +90,7 @@ class Plane:
         except AttributeError:
             return Plane((self.N,), tmp)
 
+
     def randomize(self):
         """
         Sets values of grid to random values.
@@ -105,3 +107,17 @@ class Plane:
                 tmp = np.array([r.randrange(0, max_u) for i in range(len(self.grid))])
                 self.grid = tmp.reshape(self.grid.shape)
 
+
+    def flatten(self, coordinate):
+        """
+        Converts a coordinate (which could be used to access a bit in a plane) and "flattens" it.
+
+        By this we mean we convert the coordinate into an index and bit offset corresponding to
+        the plane grid converted to 1D (think numpy.ndarray.flat).
+        """
+        flat_index, gridprod = 0, 1
+        for i in reversed(range(len(coordinate[:-1]))):
+            flat_index += coordinate[i] * gridprod
+            gridprod *= shape[i]
+
+        return flat_index, coordinate[-1]
