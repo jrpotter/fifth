@@ -1,11 +1,10 @@
 """
 Top level module representing a Cellular Automata Machine.
 
-The CAM consists of any number of cell planes that allow for increasingly complex cellular automata.
+The CAM consists of a number of cell planes that allow for increasingly complex cellular automata.
 This is the top-level module that should be used by anyone wanting to work with fifth, and provides
-all methods needed (i.e. supported) to interact/configure the cellular automata as desired.
+all methods needed (i.e. supported) to interact/configure with the cellular automata directly.
 
-@author: jrpotter
 @date: June 01, 2015
 """
 import time
@@ -22,9 +21,9 @@ class CAM:
     directly, but instead mirror the master plane, and reflect these changes after a given number of
     "ticks."
 
-    A tick represents an interval of time after which all states should be updated, and, therefore, all
-    cell planes should be updated. Certain planes may or may not change every tick, but instead on every
-    nth tick, allowing for more sophisticated views such as ECHOing and TRACE-ing.
+    A tick represents an interval of time after which all states of a given set of cell planes should be
+    updated. should be updated, Certain planes may or may not change every tick, but instead on every
+    nth tick, allowing for more sophisticated views such as ECHOing and TRACing.
     """
 
     def __init__(self, cps=1, states=100, dimen=2):
@@ -49,7 +48,7 @@ class CAM:
         The tick function should be called whenever we want to change the current status of the grid.
         Every time the tick is called, the ruleset is applied to each cell and the next set of states
         is placed into the master grid. Depending on the timing specifications set by the user, this
-        may also change secondary cell planes (the master is always updated on each tick).
+        may also change secondary cell planes (the master, by default, is always updated on each tick).
         """
         self.total += 1
         for i, j in self.ticks:

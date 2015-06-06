@@ -8,7 +8,7 @@ class Neighborhood:
     """
 
     """
-    def __init__(self, index, offsets):
+    def __init__(self, f_index, b_offset, states, indices):
         """
 
         """
