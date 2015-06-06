@@ -45,13 +45,13 @@ class Neighborhood:
 
         Offsetted cells belonging in the given neighborhood must be added separately.
         """
+        self.states = None
+        self.bit_indices = None
+        self.flat_indices = None
+
         self.total = total
         self.bit_index = bit_index
         self.flat_index = flat_index
-
-        self.states = np.array([])
-        self.bit_indices = np.array([])
-        self.flat_indices = np.array([])
 
 
     def process_offsets(self, plane, offsets):
@@ -179,9 +179,9 @@ class Configuration:
         """
         if not vfunc(plane, neighborhood, *args):
             return (False, None)
-        elif callable(self.next_state):
+        try:
             return (True, self.next_state(plane, neighborhood, *args))
-        else:
+        except TypeError:
             return (True, self.next_state)
 
 

@@ -95,10 +95,11 @@ class Ruleset:
                 # Chunk into groups of 9 and sum all values
                 # These summations represent the total number of active states in a given neighborhood
                 totals = [0] * plane.N
-                chunks = list(map(sum, [neighboring[i:i+9] for i in range(0, len(neighboring), 9)]))
+                chunks = map(sum, [neighboring[i:i+9] for i in range(0, len(neighboring), 9)])
                 for chunk in chunks:
-                    i_chunk = list(map(int, str(chunk).zfill(plane.N)))
-                    totals = list(map(sum, zip(totals, i_chunk)))
+                    i_chunk = map(int, str(chunk).zfill(plane.N))
+                    totals = map(sum, zip(totals, i_chunk))
+                totals = list(totals)
 
                 # Determine which function should be used to test success
                 if self.method == Ruleset.Method.MATCH:
@@ -111,6 +112,7 @@ class Ruleset:
                     vfunc = lambda *args: True
 
                 # Apply change to all successful configurations
+
                 for bit_index in to_update:
                     neighborhood = c.Neighborhood(flat_index, bit_index, totals[bit_index])
                     success, state = config.passes(plane, neighborhood, vfunc, *args)
