@@ -7,8 +7,9 @@ said neighborhood that yield an "on" or "off" state on the cell a ruleset is bei
 @date: May 31st, 2015
 """
 import enum
-
 import numpy as np
+import configuration as c
+from bitarray import bitarray
 
 
 class Ruleset:
@@ -71,8 +72,8 @@ class Ruleset:
         # either all bits pass or configurations are exhausted
         for flat_index, value in enumerate(plane.grid.flat):
 
-            next_row = bitarray(self.N)
-            to_update = range(0, self.N)
+            next_row = bitarray(plane.N)
+            to_update = range(0, plane.N)
             for config in self.configurations:
 
                 next_update = []
@@ -86,17 +87,18 @@ class Ruleset:
                 # no overflowing of a single column can occur. We can then find the total of the ith neighborhood by checking the
                 # sum of the ith index of the summation of every 9 chunks of numbers (this is done a row at a time).
                 neighboring = []
-                for flat_offset, bit_offset in config.offsets:
-                    neighbor = plane.grid.flat[flat_index + flat_offset]
+                for flat_offset, bit_offset, _ in config.offsets:
+                    neighbor = plane.grid.flat[(flat_index + flat_offset) % plane.N]
                     cycled = neighbor[bit_offset:] + neighbor[:bit_offset]
                     neighboring.append(int(cycled.to01()))
 
                 # Chunk into groups of 9 and sum all values
                 # These summations represent the total number of active states in a given neighborhood
-                totals = [0] * self.N
-                chunks = map(sum, [offset_totals[i:i+9] for i in range(0, len(neighboring), 9)])
+                totals = [0] * plane.N
+                chunks = list(map(sum, [neighboring[i:i+9] for i in range(0, len(neighboring), 9)]))
                 for chunk in chunks:
-                    totals = list(map(sum, zip(totals, chunk)))
+                    i_chunk = list(map(int, str(chunk).zfill(plane.N)))
+                    totals = list(map(sum, zip(totals, i_chunk)))
 
                 # Determine which function should be used to test success
                 if self.method == Ruleset.Method.MATCH:
@@ -110,8 +112,8 @@ class Ruleset:
 
                 # Apply change to all successful configurations
                 for bit_index in to_update:
-                    neighborhood = Neighborhood(flat_index, bit_index, totals[bit_index])
-                    success, state = config.passes(neighborhood, vfunc, *args)
+                    neighborhood = c.Neighborhood(flat_index, bit_index, totals[bit_index])
+                    success, state = config.passes(plane, neighborhood, vfunc, *args)
                     if success:
                         next_row[bit_index] = state
                     else:

@@ -7,6 +7,8 @@ all methods needed (i.e. supported) to interact/configure with the cellular auto
 
 @date: June 01, 2015
 """
+import plane
+
 import time
 import matplotlib.pyplot as plt
 import matplotlib.animation as ani
@@ -37,9 +39,11 @@ class CAM:
         plane_count = max(cps, 1)
         grid_dimen = (states,) * dimen
 
-        self.planes = [Plane(grid_dimen) for i in range(cps)]
+        self.planes = [plane.Plane(grid_dimen) for i in range(cps)]
+        self.master = self.planes[0]
         self.ticks = [(0, 1)]
         self.total = 0
+
 
     def tick(self, rules, *args):
         """
@@ -53,7 +57,8 @@ class CAM:
         self.total += 1
         for i, j in self.ticks:
             if self.total % j == 0:
-                rules.applyTo(self.planes[i], *args)
+                rules.apply_to(self.planes[i], *args)
+
 
     def start_plot(self, clock, rules, *args):
         """
@@ -68,16 +73,17 @@ class CAM:
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
 
-        mshown = plt.matshow(self.planes[0].bits(), fig.number, cmap='Greys')
+        mshown = plt.matshow(self.master.bits(), fig.number, cmap='Greys')
 
         def animate(frame):
             self.tick(rules, *args)
-            mshown.set_array(self.planes[0].bits())
+            mshown.set_array(self.master.bits())
             return [mshown]
 
         ani.FuncAnimation(fig, animate, interval=clock)
         plt.axis('off')
         plt.show()
+
 
     def start_console(self, clock, rules, *args):
         """
@@ -87,7 +93,17 @@ class CAM:
         TODO: Incorporate curses, instead of just printing repeatedly.
         """
         while True:
-            print(self.planes[0].bits())
+            print(self.master.bits())
             time.sleep(clock / 1000)
             self.tick(rules, *args)
+
+
+    def randomize(self):
+        """
+        Convenience function to randomize individual planes.
+        """
+        self.master.randomize()
+        for plane in self.planes[1:]:
+            plane.grid = self.master.grid
+
 

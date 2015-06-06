@@ -44,7 +44,7 @@ class Plane:
             else:
                 self.grid = np.empty(shape[:-1], dtype=np.object)
                 for i in range(self.grid.size):
-                    self.grid.flat[i] = bitarray(self.N)
+                    self.grid.flat[i] = self.N * bitarray('0')
 
 
     def __getitem__(self, index):
@@ -95,17 +95,21 @@ class Plane:
         """
         Sets values of grid to random values.
 
-        Since numbers of the grid may be larger than numpy can handle natively (i.e. too big
-        for C long types), we use the python random module instead.
+        By default, newly initialized bitarrays are random, but in a weird way I'm not sure I
+        understand. For example, constructing bitarrays in a loop appear to set every bitarray
+        after the first to 0, and, if I put a print statement afterwards, all bitarrays maintain
+        the same value. I'm not really too interested in figuring this out, so I use the alternate
+        method below.
         """
         if len(self.shape) > 0:
             import random as r
             max_u = 2**self.N - 1
+            gen = lambda: bin(r.randrange(0, max_u))[2:]
             if len(self.shape) == 1:
-                self.grid = r.randrange(0, max_u)
+                self.grid = bitarray(gen().zfill(self.N))
             else:
-                tmp = np.array([r.randrange(0, max_u) for i in range(len(self.grid))])
-                self.grid = tmp.reshape(self.grid.shape)
+                for i in range(self.grid.size):
+                    self.grid.flat[i] = bitarray(gen().zfill(self.N))
 
 
     def flatten(self, coordinate):
@@ -118,6 +122,21 @@ class Plane:
         flat_index, gridprod = 0, 1
         for i in reversed(range(len(coordinate[:-1]))):
             flat_index += coordinate[i] * gridprod
-            gridprod *= shape[i]
+            gridprod *= self.shape[i]
 
         return flat_index, coordinate[-1]
+
+
+    def bits(self):
+        """
+        Expands out bitarray into individual bits.
+
+        This is useful for display in matplotlib for example, but does take a dimension more space.
+        """
+        if len(self.shape) == 1:
+            return np.array(self.grid)
+        else:
+            tmp = np.array([list(self.grid.flat[i]) for i in range(self.grid.size)])
+            return np.reshape(tmp, self.shape)
+
+

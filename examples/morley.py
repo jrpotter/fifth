@@ -10,11 +10,10 @@ if __name__ == '__main__':
     sys.path.append(os.path.abspath('src'))
 
     import cam
-    import util as u
-    import ruleset as rs
+    import cam_parser
 
     c = cam.CAM(1, 100, 2)
-    p = u.CAMParser('B368/S245', c)
+    p = cam_parser.CAMParser('B368/S245', c)
 
     c.randomize()
     c.start_plot(100, p.ruleset)

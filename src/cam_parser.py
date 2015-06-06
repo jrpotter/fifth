@@ -53,7 +53,7 @@ class CAMParser:
         """
         self.sfunc = None
         self.offsets = c.Configuration.moore(cam.master)
-        self.ruleset = r.Ruleset(rsRuleset.Method.ALWAYS_PASS)
+        self.ruleset = r.Ruleset(r.Ruleset.Method.ALWAYS_PASS)
 
         if re.match(CAMParser.MCELL_FORMAT, notation):
             x, y = notation.split('/')
@@ -98,12 +98,11 @@ class CAMParser:
         Conway's Game of Life is denoted 23/3
         """
         x, y = list(map(int, x)), list(map(int, y))
-        def next_state(f_index, f_grid, indices, states, *args):
-            total = sum(f_grid[indices])
-            if f_grid[f_index]:
-                return int(total in x)
+        def next_state(plane, neighborhood, *args):
+            if plane.grid.flat[neighborhood.flat_index]:
+                return int(neighborhood.total in x)
             else:
-                return int(total in y)
+                return int(neighborhood.total in y)
 
         return next_state
 

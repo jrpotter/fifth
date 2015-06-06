@@ -21,6 +21,8 @@ with the ALWAYS_PASS flag set in the given ruleset the configuration is bundled 
 
 @date: June 5th, 2015
 """
+import numpy as np
+from itertools import product
 from collections import namedtuple
 
 
@@ -104,8 +106,8 @@ class Configuration:
         Note the center cell is excluded, so the total number of offsets are 3^N - 1.
         """
         offsets = {}
-        variants = ([-1, 0, 1],) * len(grid.shape)
-        for current in it.product(*variants):
+        variants = ([-1, 0, 1],) * len(plane.shape)
+        for current in product(*variants):
             if any(current):
                 offsets[current] = value
 
@@ -124,7 +126,7 @@ class Configuration:
         Note the center cell is excluded, so the total number of offsets are 2N.
         """
         offsets = []
-        variant = [0] * len(grid.shape)
+        variant = [0] * len(plane.shape)
         for i in range(len(variant)):
             for j in [-1, 1]:
                 variant[i] = j
@@ -159,7 +161,7 @@ class Configuration:
         """
         for coor, bit in offsets.items():
             flat_index, bit_index = plane.flatten(coor)
-            self.offsets.append(Offset(flat_index, bit_index, bit))
+            self.offsets.append(Configuration.Offset(flat_index, bit_index, bit))
 
 
     def passes(self, plane, neighborhood, vfunc, *args):
