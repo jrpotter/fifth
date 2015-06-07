@@ -81,6 +81,7 @@ class CAM:
             return [mshown]
 
         ani.FuncAnimation(fig, animate, interval=clock)
+
         plt.axis('off')
         plt.show()
 
