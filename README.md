@@ -30,7 +30,7 @@ a neighborhood, which packages all other cells considered in the given plane.
 
 The following will construct Conway's Game of Life, as shown in the provided GIF:
 
-```
+```python
 import cam
 import ruleset as rs
 
