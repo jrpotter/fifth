@@ -15,5 +15,7 @@ if __name__ == '__main__':
     c = cam.CAM(1, 100, 2)
     p = cam_parser.CAMParser('B1357/S1357', c)
 
-    c.randomize()
-    c.start_plot(100, p.ruleset)
+    for i in range(49, 52):
+        c.master.grid[i][49:51] = 1
+
+    c.start_plot(50, p.ruleset)

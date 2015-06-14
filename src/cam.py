@@ -5,11 +5,16 @@ The CAM consists of a number of cell planes that allow for increasingly complex 
 This is the top-level module that should be used by anyone wanting to work with fifth, and provides
 all methods needed (i.e. supported) to interact/configure with the cellular automata directly.
 
+Displays can happen via matplotlib's animation library or the ncurses lib. Note both will support
+tracing/echoing/multi-dimensional displays
+
 @date: June 01, 2015
 """
 import plane
 
 import time
+import curses
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as ani
 
@@ -85,19 +90,56 @@ class CAM:
         plt.axis('off')
         plt.show()
 
+    def _console_run(self, stdscr, clock, rules, *args):
+        """
+        The following displays all bits onto the console.
+
+        Since overflow of the window is most probable, we create a pad allowing the user to navigate
+        the scene via the arrow keys. Note this does wrap around, so one can go left (for example) indefinitely.
+        For multiple bit planes, curses.panels are used.
+        """
+        y, x = 0, 0
+        max_y, max_x = stdscr.getmaxyx()
+        width, height = self.master.shape
+
+        pad = curses.newpad(width+1, height+1)
+        pad.nodelay(1)
+        pad.keypad(1)
+
+        while True:
+
+            # Allow navigating plane
+            c = pad.getch()
+            if c == curses.KEY_UP:
+                y = (y + 1) % height
+            elif c == curses.KEY_DOWN:
+                y = (y - 1) % height
+            elif c == curses.KEY_LEFT:
+                x = (x + 1) % width
+            elif c == curses.KEY_RIGHT:
+                x = (x - 1) % width
+
+            # Cycle around grid
+            grid = self.master.grid
+            grid = np.append(grid[y:], grid[:y])
+
+            # Draw out to console
+            line = 0
+            for bits in grid.flat:
+                pad.move(line, 0)
+                pad.addstr((bits[x:] + bits[:x]).to01())
+                line += 1
+            pad.refresh(0, 0, 0, 0, max_y-1, max_x-1)
+            time.sleep(clock / 1000)
+            self.tick(rules, *args)
 
     def start_console(self, clock, rules, *args):
         """
         Initates main console loop.
 
         Works similarly to start_plot but prints out to the console.
-        TODO: Incorporate curses, instead of just printing repeatedly.
         """
-        while True:
-            print(self.master.bits())
-            time.sleep(clock / 1000)
-            self.tick(rules, *args)
-
+        curses.wrapper(self._console_run, clock, rules, *args)
 
     def randomize(self):
         """
