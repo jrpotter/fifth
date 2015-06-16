@@ -73,7 +73,6 @@ class ConsoleDisplay(_Display):
         self.stdscr = curses.initscr()
         curses.noecho()
         curses.cbreak()
-        stdscr.keypad(True)
 
         # Specifies the offsets the grid are taken at
         self.x = 0
@@ -83,8 +82,8 @@ class ConsoleDisplay(_Display):
         # reference for future use
         width, height = self.cam.master.shape
         self.pad = curses.newpad(width+1, height+1)
-        self.pad.nodelay(1)
-        self.pad.keypad(1)
+        self.pad.nodelay(True)
+        self.pad.keypad(True)
 
         # Construct the necessary planes
         self.panels = []
@@ -139,13 +138,13 @@ class ConsoleDisplay(_Display):
                 # Draw out to console
                 line = 0
                 for bits in grid.flat:
-                    pad.move(line, 0)
-                    pad.addstr((bits[x:] + bits[:x]).to01())
+                    self.pad.move(line, 0)
+                    self.pad.addstr((bits[x:] + bits[:x]).to01())
                     line += 1
 
                 # Draw out to screen
                 curses.panels.update_panels()
-                pad.refresh(0, 0, 0, 0, max_y-1, max_x-1)
+                self.pad.refresh(0, 0, 0, 0, max_y-1, max_x-1)
 
                 # Prepare for next loop
                 time.sleep(self.clock / 1000)
@@ -153,7 +152,7 @@ class ConsoleDisplay(_Display):
 
             except:
                 curses.nocbreak()
-                stdscr.keypad(False)
+                self.pad.keypad(False)
                 curses.echo()
                 curses.endwin()
 
