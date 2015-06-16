@@ -10,14 +10,10 @@ tracing/echoing/multi-dimensional displays
 
 @date: June 01, 2015
 """
+import enum
+
 import plane
-
-import time
-import curses
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as ani
-
+import display
 
 class CAM:
     """
@@ -32,6 +28,13 @@ class CAM:
     updated. should be updated, Certain planes may or may not change every tick, but instead on every
     nth tick, allowing for more sophisticated views such as ECHOing and TRACing.
     """
+    class Show(enum.Enum):
+        """
+        Display method.
+        """
+        NONE    = 0
+        CONSOLE = 1
+        WINDOW  = 2
 
     def __init__(self, cps=1, states=100, dimen=2):
         """
@@ -49,7 +52,6 @@ class CAM:
         self.ticks = [(0, 1)]
         self.total = 0
 
-
     def tick(self, rules, *args):
         """
         Modify all states in a given CAM "simultaneously".
@@ -64,83 +66,6 @@ class CAM:
             if self.total % j == 0:
                 rules.apply_to(self.planes[i], *args)
 
-
-    def start_plot(self, clock, rules, *args):
-        """
-        Initiates main graphical loop.
-
-        The following function displays the graphical component (through use of matplotlib), and triggers the
-        next tick for every "clock" milliseconds. This should only be called if the automata is 2 or 3 dimensional.
-        """
-        fig, ax = plt.subplots()
-
-        ax.set_frame_on(False)
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
-
-        mshown = plt.matshow(self.master.bits(), fig.number, cmap='Greys')
-
-        def animate(frame):
-            self.tick(rules, *args)
-            mshown.set_array(self.master.bits())
-            return [mshown]
-
-        ani.FuncAnimation(fig, animate, interval=clock)
-
-        plt.axis('off')
-        plt.show()
-
-    def _console_run(self, stdscr, clock, rules, *args):
-        """
-        The following displays all bits onto the console.
-
-        Since overflow of the window is most probable, we create a pad allowing the user to navigate
-        the scene via the arrow keys. Note this does wrap around, so one can go left (for example) indefinitely.
-        For multiple bit planes, curses.panels are used.
-        """
-        y, x = 0, 0
-        max_y, max_x = stdscr.getmaxyx()
-        width, height = self.master.shape
-
-        pad = curses.newpad(width+1, height+1)
-        pad.nodelay(1)
-        pad.keypad(1)
-
-        while True:
-
-            # Allow navigating plane
-            c = pad.getch()
-            if c == curses.KEY_UP:
-                y = (y + 1) % height
-            elif c == curses.KEY_DOWN:
-                y = (y - 1) % height
-            elif c == curses.KEY_LEFT:
-                x = (x + 1) % width
-            elif c == curses.KEY_RIGHT:
-                x = (x - 1) % width
-
-            # Cycle around grid
-            grid = self.master.grid
-            grid = np.append(grid[y:], grid[:y])
-
-            # Draw out to console
-            line = 0
-            for bits in grid.flat:
-                pad.move(line, 0)
-                pad.addstr((bits[x:] + bits[:x]).to01())
-                line += 1
-            pad.refresh(0, 0, 0, 0, max_y-1, max_x-1)
-            time.sleep(clock / 1000)
-            self.tick(rules, *args)
-
-    def start_console(self, clock, rules, *args):
-        """
-        Initates main console loop.
-
-        Works similarly to start_plot but prints out to the console.
-        """
-        curses.wrapper(self._console_run, clock, rules, *args)
-
     def randomize(self):
         """
         Convenience function to randomize individual planes.
@@ -149,4 +74,15 @@ class CAM:
         for plane in self.planes[1:]:
             plane.grid = self.master.grid
 
+    def start(self, show, **kwargs):
+        """
+        Delegate how to initiate running the CAM.
+        """
+        if show == CAM.Show.NONE:
+            while True:
+                self.tick(**kwargs)
+        elif show == CAM.Show.CONSOLE:
+            ConsoleDisplay(self, **kwargs).run()
+        elif show == CAM.Show.WINDOW:
+            WindowDisplay(self, **kwargs).run()
 

@@ -9,7 +9,6 @@ state at the ith index of the given row. This holds for 0 as well.
 For example, given a 100 x 100 CAM, we represent this underneath as a 1-D array of 100 integers, each of which's
 binary expansion will be 100 bits long (and padded with 0's if necessary).
 
-@author: jrpotter
 @date: June 05, 2015
 """
 import numpy as np
