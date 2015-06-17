@@ -10,9 +10,10 @@ additional support for ECHOs and TRACing.
 
 @date: June 16th, 2015
 """
+import sys
 import time
 import curses
-import curses.panel
+import itertools
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -34,7 +35,7 @@ class _Display:
 
         self.clock = clock
         self.rules = rules
-        self.tick_args = *args
+        self.tick_args = args
 
     def _valid(self):
         """
@@ -56,7 +57,7 @@ class ConsoleDisplay(_Display):
     Note a couple concepts go hand in hand with displaying all the bits:
 
     First, it is unlikely the entirety of a CAM can be displayed on the screen
-    at a time, so instead the use of a pad is supported, allowing navigation
+    at a time, so instead we emulate the use of a pad, allowing navigation
     via the arrow keys.
 
     Second, to provide support for color mapping and multiple planes, we use panels
@@ -65,30 +66,30 @@ class ConsoleDisplay(_Display):
 
     def __init__(self, cam, clock, rules, *args):
         """
-        Here we initialize the curses library, and begin construction of the necessary panels.
+        Here we initialize the curses library, and begin construction of the necessary overlays.
         """
         super().__init__(cam, clock, rules, *args)
 
         # Basic Curses Setup
         self.stdscr = curses.initscr()
+        self.stdscr.keypad(True)
+        self.stdscr.nodelay(True)
+
+        # Other setup
         curses.noecho()
         curses.cbreak()
+        curses.start_color()
+        curses.use_default_colors()
 
         # Specifies the offsets the grid are taken at
-        self.x = 0
-        self.y = 0
-
-        # Note we actually don't use the stdscr, but keeping
-        # reference for future use
-        width, height = self.cam.master.shape
-        self.pad = curses.newpad(width+1, height+1)
-        self.pad.nodelay(True)
-        self.pad.keypad(True)
+        self.x, self.y = 0, 0
+        self.width, self.height = self.cam.master.shape
 
         # Construct the necessary planes
-        self.panels = []
-        for plane in self.cam.planes:
-            self.panels.append(curses.panel.new_panel(self.pad))
+        self.overlays = []
+        for pl in self.cam.planes:
+            pad = curses.newpad(self.width+1, self.height+1)
+            self.overlays.append(pad)
 
     def _valid(self):
         """
@@ -105,13 +106,38 @@ class ConsoleDisplay(_Display):
         is determined by the passed character value.
         """
         if ch == curses.KEY_UP:
-            self.y = (self.y + 1) % height
+            self.y = (self.y + 1) % self.height
         elif ch == curses.KEY_DOWN:
-            self.y = (self.y - 1) % height
+            self.y = (self.y - 1) % self.height
         elif ch == curses.KEY_LEFT:
-            self.x = (self.x + 1) % width
+            self.x = (self.x + 1) % self.width
         elif ch == curses.KEY_RIGHT:
-            self.x = (self.x - 1) % width
+            self.x = (self.x - 1) % self.width
+
+    def _draw_overlay(self, overlay, pl):
+        """
+        Draw the grid onto the overlay.
+
+        Wherever a one occurs, we make sure to draw it. Otherwise, we create a transparent
+        spot so any overlays below can be seen.
+        """
+        overlay.clear()
+
+        line = 0
+        grid = np.append(pl.grid[self.y:], pl.grid[:self.y])
+        for bits in grid.flat:
+            overlay.move(line, 0)
+            line += 1
+
+            # We go through and group the bits apart so
+            cycle = bits[self.x:] + bits[:self.x]
+            for k, g in itertools.groupby(cycle):
+                values = list(g)
+                if any(values):
+                    overlay.addstr('+' * len(values))
+                else:
+                    y, x = overlay.getyx()
+                    overlay.move(y, x + len(values))
 
     def run(self):
         """
@@ -121,40 +147,36 @@ class ConsoleDisplay(_Display):
         (which could be user thrown by Ctrl-C), restores the terminal back
         to a usable state.
         """
-        while True:
-            try:
+        try:
+            while True:
+
                 # Note the user can change the size of the terminal,
                 # so we query for these values every time
-                max_y, max_x = stdscr.getmaxyx()
+                max_y, max_x = self.stdscr.getmaxyx()
 
                 # Navigate the plane
                 # Note in the __init__ method, this was set to not block
-                self._shift(pad.getch())
+                self._shift(self.stdscr.getch())
 
                 # Cycle around grid
-                grid = self.cam.master.grid
-                grid = np.append(grid[y:], grid[:y])
-
-                # Draw out to console
-                line = 0
-                for bits in grid.flat:
-                    self.pad.move(line, 0)
-                    self.pad.addstr((bits[x:] + bits[:x]).to01())
-                    line += 1
-
-                # Draw out to screen
-                curses.panels.update_panels()
-                self.pad.refresh(0, 0, 0, 0, max_y-1, max_x-1)
+                for i, pl in enumerate(self.cam.planes):
+                    if pl.dirty:
+                        pl.dirty = False
+                        self._draw_overlay(self.overlays[i], pl)
+                        self.overlays[i].noutrefresh(0, 0, 0, 0, max_y-1, max_x-1)
 
                 # Prepare for next loop
+                curses.doupdate()
                 time.sleep(self.clock / 1000)
-                self.tick(self.rules, *self.tick_args)
+                self.cam.tick(self.rules, *self.tick_args)
 
-            except:
-                curses.nocbreak()
-                self.pad.keypad(False)
-                curses.echo()
-                curses.endwin()
+        except:
+            self.stdscr.keypad(False)
+            curses.nocbreak()
+            curses.echo()
+            curses.endwin()
+            print("Exception: ", sys.exc_info()[0])
+            raise
 
 
 class WindowDisplay(_Display):

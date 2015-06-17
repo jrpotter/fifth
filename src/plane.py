@@ -45,6 +45,9 @@ class Plane:
                 for i in range(self.grid.size):
                     self.grid.flat[i] = self.N * bitarray('0')
 
+        # Check if a plane has been updated recently
+        self.dirty = False
+
 
     def __getitem__(self, index):
         """

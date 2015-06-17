@@ -44,10 +44,10 @@ class CAM:
                  will be cps * states^dimen
         @dimen:  The dimensions of the cellular automata. For example, for an N-tuple array, the dimension is N.
         """
-        plane_count = max(cps, 1)
+        pl_cnt = max(cps, 1)
         grid_dimen = (states,) * dimen
 
-        self.planes = [plane.Plane(grid_dimen) for i in range(cps)]
+        self.planes = [plane.Plane(grid_dimen) for _ in range(pl_cnt)]
         self.master = self.planes[0]
         self.ticks = [(0, 1)]
         self.total = 0
@@ -64,6 +64,7 @@ class CAM:
         self.total += 1
         for i, j in self.ticks:
             if self.total % j == 0:
+                self.planes[i].dirty = True
                 rules.apply_to(self.planes[i], *args)
 
     def randomize(self):
@@ -71,8 +72,8 @@ class CAM:
         Convenience function to randomize individual planes.
         """
         self.master.randomize()
-        for plane in self.planes[1:]:
-            plane.grid = self.master.grid
+        for p in self.planes[1:]:
+            p.grid = self.master.grid
 
     def start(self, show, **kwargs):
         """
@@ -82,7 +83,7 @@ class CAM:
             while True:
                 self.tick(**kwargs)
         elif show == CAM.Show.CONSOLE:
-            ConsoleDisplay(self, **kwargs).run()
+            display.ConsoleDisplay(self, **kwargs).run()
         elif show == CAM.Show.WINDOW:
-            WindowDisplay(self, **kwargs).run()
+            display.WindowDisplay(self, **kwargs).run()
 
