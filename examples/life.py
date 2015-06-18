@@ -33,4 +33,4 @@ if __name__ == '__main__':
     for i in range(9):
         c.master.grid[35+i][12:48] = bitarray(bin(row[i])[2:].zfill(36))
 
-    c.start_console(50, p.ruleset)
+    c.start(cam.CAM.Show.CONSOLE, clock=50, rules=p.ruleset)

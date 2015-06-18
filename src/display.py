@@ -87,9 +87,11 @@ class ConsoleDisplay(_Display):
 
         # Construct the necessary planes
         self.overlays = []
-        for pl in self.cam.planes:
+        for i, pl in enumerate(self.cam.planes):
             pad = curses.newpad(self.width+1, self.height+1)
             self.overlays.append(pad)
+            if i > 0:
+                self.overlays[i-1].overlay(pad)
 
     def _valid(self):
         """
@@ -201,7 +203,7 @@ class WindowDisplay(_Display):
         # for proper superimposition
         self.matrices = []
         for plane in self.cam.planes:
-            mshown = plt.matshow(plane.bits(), fig.number, cmap='Greys')
+            mshown = plt.matshow(plane.bits(), self.fig.number, cmap='Greys')
             self.matrices.append(mshown)
 
     def _valid(self):
@@ -221,8 +223,8 @@ class WindowDisplay(_Display):
         """
         self.cam.tick(self.rules, *self.tick_args)
         if len(self.cam.master.shape) == 2:
-            self.mshown.set_array(self.cam.master.bits())
-            return [self.mshown]
+            self.matrices[0].set_array(self.cam.master.bits())
+            return [self.matrices[0]]
         else:
             pass
 
@@ -241,7 +243,7 @@ class WindowDisplay(_Display):
         else:
             pass
 
-        ani.FuncAnimation(self.fig, self.animate, interval=self.clock)
+        ani.FuncAnimation(self.fig, self._animate, interval=self.clock)
         plt.axis('off')
         plt.show()
 

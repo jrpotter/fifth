@@ -16,4 +16,4 @@ if __name__ == '__main__':
     p = cam_parser.CAMParser('B2/S', c)
 
     c.randomize()
-    c.start_plot(50, p.ruleset)
+    c.start(cam.CAM.Show.WINDOW, clock=50, rules=p.ruleset)

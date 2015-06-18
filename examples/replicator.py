@@ -18,4 +18,4 @@ if __name__ == '__main__':
     for i in range(49, 52):
         c.master.grid[i][49:51] = 1
 
-    c.start_console(50, p.ruleset)
+    c.start(cam.CAM.Show.WINDOW, clock=50, rules=p.ruleset)
