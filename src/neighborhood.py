@@ -55,7 +55,7 @@ class Neighborhood:
         if plane.N > 0:
             f_offsets = list(map(plane.flatten, offsets))
             for i in range(len(plane.bits)):
-                neighborhood = Neighborhood(i)
+                neighborhood = Neighborhood(plane.unflatten(i))
                 for j in range(len(f_offsets)):
                     neighborhood.neighbors.append(plane.bits[j])
                     plane.bits[j] += 1
@@ -91,12 +91,12 @@ class Neighborhood:
         We can then find the total of the ith neighborhood by checking the sum of the ith index of the summation of every
         9 chunks of numbers (this is done at the Nth-1 dimension).
         """
-        neighborhoods = []
+        n_counts = []
 
         # In the first dimension, we have to simply loop through and count for each bit
         if 0 < plane.N <= 1:
             for i in range(len(plane.bits)):
-                neighborhoods.append(sum([plane.bits[i+j] for j in offsets]))
+                n_counts.append(sum([plane.bits[i+j] for j in offsets]))
         else:
             for level in range(plane.shape[0]):
 
@@ -122,6 +122,6 @@ class Neighborhood:
                     totals = map(sum, zip(totals, padded_chunk))
 
                 # Neighboring totals now align with original grid
-                neighborhoods += list(totals)
+                n_counts += list(totals)
 
-        return neighborhoods
+        return n_counts

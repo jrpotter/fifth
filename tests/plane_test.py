@@ -113,3 +113,14 @@ class TestIndexing:
         assert self.plane3d.flatten((-1, 0, 0)) == 990000
         assert self.plane3d.flatten((1, 1, 1)) == 10101
 
+    def test_unflatten(self):
+        """
+        Unflatten indices.
+        """
+        assert self.plane2d.unflatten(0) == (0, 0)
+        assert self.plane2d.unflatten(9900) == (99, 0)
+        assert self.plane2d.unflatten(101) == (1, 1)
+        assert self.plane3d.unflatten(0) == (0, 0, 0)
+        assert self.plane3d.unflatten(990000) == (99, 0, 0)
+        assert self.plane3d.unflatten(10101) == (1, 1, 1)
+

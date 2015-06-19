@@ -172,6 +172,17 @@ class Plane:
 
         return index % len(self.bits)
 
+    def unflatten(self, f_index):
+        """
+        Given a flattened index, return back to tuple coordinates.
+        """
+        coordinates = []
+        for i in self.offsets:
+            coordinates.append(f_index // i)
+            f_index -= (i * coordinates[-1])
+
+        return tuple(coordinates)
+
     def matrix(self):
         """
         Convert bitarray into a corresponding numpy matrix.

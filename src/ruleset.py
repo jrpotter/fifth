@@ -14,7 +14,7 @@ from bitarray import bitarray
 
 class Ruleset:
     """
-    The primary class of this module, which saves configurations of cells that yield the next state.
+    A bundle of configurations.
 
     The ruleset will take in configurations defined by the user that specify how a cell's state should change,
     depending on the given neighborhood and current state. For example, if I have a configuration that states
@@ -64,7 +64,16 @@ class Ruleset:
                arg should be a function returning a BOOL, which takes in a current cell's value, and the
                value of its neighbors.
         """
-        next_grid = []
+        next_states = []
+
+        for index, state in enumerate(plane.bits):
+
+
+
+
+
+
+
 
         # We apply our method a row at a time, to take advantage of being able to sum the totals
         # of a neighborhood in a batch manner. We try to apply a configuration to every bit of a
