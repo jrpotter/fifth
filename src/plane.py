@@ -84,7 +84,7 @@ class Plane:
         # If it does not, can simply return the new plane given the subset accessed.
         # If it does, we return the actual bit.
         if type(index) is tuple:
-            offset = sum([x*y for (x,y) in zip(index, self.offsets)])
+            offset = sum([x*y for (x,y) in zip(index, self.offsets)]) % len(self.bits)
             if len(index) == self.N:
                 return self.bits[offset]
             else:
@@ -107,7 +107,7 @@ class Plane:
             return self.bits[index]
         else:
             delta = self.offsets[0]
-            offset = index * delta
+            offset = (index * delta) % len(self.bits)
             return Plane(self.shape[1:], self.bits[offset:offset+delta])
 
     def __setitem__(self, index, value):
@@ -122,7 +122,7 @@ class Plane:
         100 elements (the 100 bits in the first row) to 1.
         """
         if type(index) is tuple:
-            offset = sum([x*y for (x,y) in zip(index, self.offsets)])
+            offset = sum([x*y for (x,y) in zip(index, self.offsets)]) % len(self.bits)
             if len(index) == self.N:
                 self.bits[offset] = value
             else:
@@ -138,7 +138,7 @@ class Plane:
             self.bits[index] = value
         else:
             delta = self.offsets[0]
-            offset = index * delta
+            offset = (index * delta) % len(self.bits)
             self.bits[offset:offset+delta] = value
 
     def randomize(self):
@@ -155,6 +155,22 @@ class Plane:
             max_unsigned = reduce(operator.mul, self.shape, 1)
             sequence = bin(random.randrange(0, max_unsigned))[2:]
             self.bits = bitarray(sequence.zfill(max_unsigned))
+
+    def flatten(self, coordinates):
+        """
+        Given coordinates, converts them to flattened value for direct bit access.
+
+        Note this can be used for relative coordinates as well, and negative values
+        are also supported fine.
+        """
+        if len(coordinates) != self.N:
+            raise ValueError("Invalid Coordinates {}".format(coordinates))
+
+        index = 0
+        for i, coor in enumerate(coordinates):
+            index += coor * self.offsets[i]
+
+        return index % len(self.bits)
 
     def matrix(self):
         """

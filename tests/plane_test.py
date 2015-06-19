@@ -2,6 +2,7 @@ import os, sys
 sys.path.insert(0, os.path.join('..', 'src'))
 
 import plane
+import numpy as np
 
 
 class TestProperties:
@@ -18,6 +19,13 @@ class TestProperties:
         """
         assert len(self.plane2d.bits) == 100 * 100
         assert len(self.plane3d.bits) == 100 * 100 * 100
+
+    def test_offsets(self):
+        """
+        Offsets.
+        """
+        assert list(self.plane2d.offsets) == [100, 1]
+        assert list(self.plane3d.offsets) == [10000, 100, 1]
 
     def test_randomize(self):
         """
@@ -93,4 +101,15 @@ class TestIndexing:
         self.plane2d[0] = 1
         for i in range(10):
             assert self.plane2d[0][i] == 1
+
+    def test_flatten(self):
+        """
+        Flatten indices.
+        """
+        assert self.plane2d.flatten((0, 0)) == 0
+        assert self.plane2d.flatten((-1, 0)) == 9900
+        assert self.plane2d.flatten((1, 1)) == 101
+        assert self.plane3d.flatten((0, 0, 0)) == 0
+        assert self.plane3d.flatten((-1, 0, 0)) == 990000
+        assert self.plane3d.flatten((1, 1, 1)) == 10101
 
