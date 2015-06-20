@@ -5,7 +5,7 @@ import plane
 import numpy as np
 
 
-class TestProperties:
+class TestPlane:
     """
 
     """
@@ -40,15 +40,6 @@ class TestProperties:
         assert bits3d != self.plane3d.bits
         assert len(self.plane2d.bits) == 100 * 100
         assert len(self.plane3d.bits) == 100 * 100 * 100
-
-
-class TestIndexing:
-    """
-
-    """
-    def setUp(self):
-        self.plane2d = plane.Plane((100, 100))
-        self.plane3d = plane.Plane((100, 100, 100))
 
     def test_tupleAssignment(self):
         """

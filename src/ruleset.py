@@ -64,7 +64,19 @@ class Ruleset:
                arg should be a function returning a BOOL, which takes in a current cell's value, and the
                value of its neighbors.
         """
-        next_states = []
+
+        # These are the states of configurations that pass (note if all configurations
+        # fail for any state, the state remains the same)
+        next_states = plane.bits.copy()
+
+        # These are the states we attempt to apply a configuration to
+        # Since totals are computed simultaneously, we save which states do not pass
+        # for each configuration
+        current_states = enumerate(plane.bits)
+        for config in self.configurations:
+            totals = Neighborhood.get_totals(plane, config.offsets)
+
+
 
         for index, state in enumerate(plane.bits):
 

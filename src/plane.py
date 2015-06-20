@@ -1,16 +1,3 @@
-"""
-Wrapper of a bitarray.
-
-For the sake of compactness, the use of numpy arrays have been completely abandoned as a representation
-of the data. This also allows for a bit more consistency throughout the library, where I've often used
-the flat iterator provided by numpy, and other times used the actual array.
-
-The use of just a bitarray also means it is significantly more compact, indexing of a plane should be
-more efficient, and the entire association between an N-1 dimensional grid with the current shape of
-the plane is no longer a concern.
-
-@date: June 05, 2015
-"""
 import random
 import operator
 import numpy as np
@@ -20,12 +7,37 @@ from bitarray import bitarray
 from collections import deque
 
 
+class Coordinate:
+    """
+    Allow normilization between flat indices and offsets.
+    """
+
+    def __init__(self, index, plane):
+        """
+
+        """
+        if type(index) is tuple:
+            self.index = index
+            self.flat = plane.flatten(index)
+        else:
+            self.flat = index
+            self.index = plane.unflatten(index)
+
+
 class Plane:
     """
     Represents a cell plane, with underlying usage of bitarrays.
 
     The following maintains the shape of a contiguous block of memory, allowing the user to interact
     with it as if it was a multidimensional array.
+
+    For the sake of compactness, the use of numpy arrays have been completely abandoned as a representation
+    of the data. This also allows for a bit more consistency throughout the library, where I've often used
+    the flat iterator provided by numpy, and other times used the actual array.
+
+    The use of just a bitarray also means it is significantly more compact, indexing of a plane should be
+    more efficient, and the entire association between an N-1 dimensional grid with the current shape of
+    the plane is no longer a concern.
     """
 
     def __init__(self, shape, bits = None):

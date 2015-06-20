@@ -8,7 +8,7 @@ import numpy as np
 from neighborhood import Neighborhood
 
 
-class TestProperties:
+class TestNeighborhood:
     """
 
     """
@@ -17,12 +17,12 @@ class TestProperties:
         self.neigh2d = Neighborhood(0)
         self.offsets2d = [(-1, 0), (1, 0)]
         self.plane2d = plane.Plane((100, 100))
-        self.neigh2d.populate(self.offsets2d, self.plane2d)
+        self.neigh2d.populate(self.plane2d, self.offsets2d)
 
         self.neigh3d = Neighborhood(0)
         self.offsets3d = [(-1, 0, 0), (1, 0, 1)]
         self.plane3d = plane.Plane((100, 100, 100))
-        self.neigh3d.populate(self.offsets3d, self.plane3d)
+        self.neigh3d.populate(self.plane3d, self.offsets3d)
 
     def test_neighborhoodLength(self):
         """
@@ -86,5 +86,4 @@ class TestProperties:
         t2 = Neighborhood.get_totals(self.plane3d, self.offsets3d)
         assert np.count_nonzero(np.array(t1)) == 200
         assert np.count_nonzero(np.array(t2)) == 20000
-
 
