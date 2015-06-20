@@ -41,7 +41,7 @@ class Neighborhood:
         self.neighbors = bitarray()
         for offset in offsets:
             f_index = plane.flatten(offset) + self.index
-            self.neighbors.append(plane[f_index % len(plane.bits)])
+            self.neighbors.append(plane.bits[f_index % len(plane.bits)])
 
         self.total = len(self.neighbors)
 
@@ -207,7 +207,7 @@ class Configuration:
                      referring to the offsets checked in a given neighborhood) with an expected
                      state value and a 'plane' key, corresponding to the plane in question.
         """
-        self.offsets = bitarray()
+        self.offsets = []
         self.sequence = bitarray()
         self.next_state = next_state
         if 'plane' in kwargs and 'offsets' in kwargs:
@@ -222,8 +222,7 @@ class Configuration:
         of the value at the first coordinate.
         """
         for coor, bit in offsets.items():
-            f_index = plane.flatten(coor)
-            self.offsets.append(f_index)
+            self.offsets.append(coor)
             self.sequence.append(bit)
 
     def passes(self, plane, neighborhood, vfunc, *args):
@@ -253,7 +252,7 @@ class Configuration:
         Note this behaves like the _tolerates method with a tolerance of 1.
         """
         neighborhood.populate(plane, self.offsets)
-        return not self.sequence ^ neighborhood.neighbors
+        return (self.sequence ^ neighborhood.neighbors).count() == 0
 
     def tolerates(self, plane, neighborhood, tolerance):
         """
@@ -264,7 +263,7 @@ class Configuration:
         """
         neighborhood.populate(plane, self.offsets)
         non_matches = self.sequence ^ neighborhood.neighbors
-        return (non_matches / len(self.sequence)) >= tolerance
+        return ((len(self.sequence) - non_matches.count()) / len(self.sequence)) >= tolerance
 
     def satisfies(self, plane, neighborhood, valid_func, *args):
         """

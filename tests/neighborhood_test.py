@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join('..', 'src'))
 
 import plane
 import numpy as np
-from neighborhood import Neighborhood
+from configuration import Neighborhood
 
 
 class TestNeighborhood:
@@ -87,3 +87,16 @@ class TestNeighborhood:
         assert np.count_nonzero(np.array(t1)) == 200
         assert np.count_nonzero(np.array(t2)) == 20000
 
+    def test_neighborhoodPopulate(self):
+        """
+        Neighborhood Populate.
+        """
+        self.plane2d[10] = 1
+        self.neigh2d.populate(self.plane2d, self.offsets2d)
+        assert self.neigh2d.neighbors.count() == 0
+        self.plane2d[1] = 1
+        self.neigh2d.populate(self.plane2d, self.offsets2d)
+        assert self.neigh2d.neighbors.count() == 1
+        self.plane2d[self.offsets2d] = 1
+        self.neigh2d.populate(self.plane2d, self.offsets2d)
+        assert self.neigh2d.neighbors.count() == 2

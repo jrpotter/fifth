@@ -3,7 +3,7 @@ sys.path.insert(0, os.path.join('..', 'src'))
 
 import plane
 import numpy as np
-from neighborhood import Neighborhood
+from configuration import Neighborhood
 from configuration import Configuration
 
 
@@ -14,7 +14,7 @@ class TestConfiguration:
     def setUp(self):
         self.neighborhood = Neighborhood(0)
 
-        self.plane2d = plane.Plane((100, 100))
+        self.plane2d = plane.Plane((10, 10))
         self.config2d = Configuration(0, plane=self.plane2d, offsets={
             (-1, -1): 1,
             (-1, 0): 1,
@@ -51,4 +51,13 @@ class TestConfiguration:
         self.plane2d[[(-1, -1), (-1, 0), (1, -1), (0, 0)]] = 1
         assert self.config2d.matches(self.plane2d, self.neighborhood)
 
+    def test_toleranceNeighborhood(self):
+        """
+
+        """
+        assert not self.config2d.tolerates(self.plane2d, self.neighborhood, 0.5)
+        self.plane2d[(-1, -1)] = 1
+        assert not self.config2d.tolerates(self.plane2d, self.neighborhood, 0.5)
+        self.plane2d[(-1, 0)] = 1
+        assert self.config2d.tolerates(self.plane2d, self.neighborhood, 0.5)
 

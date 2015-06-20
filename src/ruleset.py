@@ -9,6 +9,7 @@ said neighborhood that yield an "on" or "off" state on the cell a ruleset is bei
 import enum
 import numpy as np
 import configuration as c
+
 from bitarray import bitarray
 
 
@@ -67,60 +68,17 @@ class Ruleset:
 
         # These are the states of configurations that pass (note if all configurations
         # fail for any state, the state remains the same)
-        next_states = plane.bits.copy()
+        next_plane = plane.bits.copy()
 
         # These are the states we attempt to apply a configuration to
-        # Since totals are computed simultaneously, we save which states do not pass
-        # for each configuration
+        # Since totals are computed for a configuration at once, we save
+        # which states do not pass for each configuration
         current_states = enumerate(plane.bits)
         for config in self.configurations:
-            totals = Neighborhood.get_totals(plane, config.offsets)
+            totals = c.Neighborhood.get_totals(plane, config.offsets)
 
-
-
-        for index, state in enumerate(plane.bits):
-
-
-
-
-
-
-
-
-        # We apply our method a row at a time, to take advantage of being able to sum the totals
-        # of a neighborhood in a batch manner. We try to apply a configuration to every bit of a
-        # row, mark those that fail, and try the next configuration on the failed bits until
-        # either all bits pass or configurations are exhausted
-        for flat_index, value in enumerate(plane.grid.flat):
-
-            next_row = bitarray(plane.N)
-            to_update = range(0, plane.N)
-            for config in self.configurations:
-
-                next_update = []
-
-                # After profiling with a previous version, I found that going through each index and totaling the number
-                # of active states was taking much longer than I liked. Instead, we compute as many neighborhoods as possible
-                # simultaneously, avoiding explicit summation via the "sum" function, at least for each state separately.
-                #
-                # Because the states are now represented as numbers, we instead convert each number to their binary representation
-                # and add the binary representations together. We do this in chunks of 9, depending on the number of offsets, so
-                # no overflowing of a single column can occur. We can then find the total of the ith neighborhood by checking the
-                # sum of the ith index of the summation of every 9 chunks of numbers (this is done a row at a time).
-                neighboring = []
-                for flat_offset, bit_offset, _ in config.offsets:
-                    neighbor = plane.grid.flat[(flat_index + flat_offset) % plane.N]
-                    cycled = neighbor[bit_offset:] + neighbor[:bit_offset]
-                    neighboring.append(int(cycled.to01()))
-
-                # Chunk into groups of 9 and sum all values
-                # These summations represent the total number of active states in a given neighborhood
-                totals = [0] * plane.N
-                chunks = map(sum, [neighboring[i:i+9] for i in range(0, len(neighboring), 9)])
-                for chunk in chunks:
-                    i_chunk = map(int, str(chunk).zfill(plane.N))
-                    totals = map(sum, zip(totals, i_chunk))
-                totals = list(totals)
+            next_states = []
+            for index, state in current_states:
 
                 # Determine which function should be used to test success
                 if self.method == Ruleset.Method.MATCH:
@@ -132,24 +90,21 @@ class Ruleset:
                 elif self.method == Ruleset.Method.ALWAYS_PASS:
                     vfunc = lambda *args: True
 
-                # Apply change to all successful configurations
+                # Passes a mostly uninitialized neighborhood to the given function
+                # Note if you need actual states of the neighborhood, make sure to
+                # call the neighborhood's populate function
+                neighborhood = c.Neighborhood(index)
+                neighborhood.total = totals[index]
 
-                for bit_index in to_update:
-                    neighborhood = c.Neighborhood(flat_index, bit_index, totals[bit_index])
-                    success, state = config.passes(plane, neighborhood, vfunc, *args)
-                    if success:
-                        next_row[bit_index] = state
-                    else:
-                        next_update.append(bit_index)
+                # Apply changes to for any successful configurations
+                success, to_state = config.passes(plane, neighborhood, vfunc, *args)
+                if success:
+                    next_plane[index] = to_state
+                else:
+                    next_states.append((index, state))
 
-                # Apply next configuration to given indices
-                to_update = next_update
+            current_states = next_states
 
-            # We must update all states after each next state is computed
-            next_grid.append(next_row)
-
-        # Can now apply the updates simultaneously
-        for i in range(plane.grid.size):
-            plane.grid.flat[i] = next_grid[i]
-
+        # All configurations tested, transition plane
+        plane.bits = next_plane
 

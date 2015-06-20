@@ -7,23 +7,6 @@ from bitarray import bitarray
 from collections import deque
 
 
-class Coordinate:
-    """
-    Allow normilization between flat indices and offsets.
-    """
-
-    def __init__(self, index, plane):
-        """
-
-        """
-        if type(index) is tuple:
-            self.index = index
-            self.flat = plane.flatten(index)
-        else:
-            self.flat = index
-            self.index = plane.unflatten(index)
-
-
 class Plane:
     """
     Represents a cell plane, with underlying usage of bitarrays.
