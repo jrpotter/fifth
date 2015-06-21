@@ -147,9 +147,9 @@ class Plane:
         method below.
         """
         if self.N > 0:
-            max_unsigned = reduce(operator.mul, self.shape, 1)
-            sequence = bin(random.randrange(0, max_unsigned))[2:]
-            self.bits = bitarray(sequence.zfill(max_unsigned))
+            bit_count = reduce(operator.mul, self.shape, 1)
+            sequence = bin(random.randrange(0, 2**bit_count-1))[2:]
+            self.bits = bitarray(sequence.zfill(bit_count))
 
     def flatten(self, coordinates):
         """

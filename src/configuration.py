@@ -20,15 +20,15 @@ class Neighborhood:
     perform this computation in the first place (for example, if an ALWAYS_PASS flag is passed
     as opposed to a MATCH flag).
     """
-    def __init__(self, index):
+    def __init__(self, flat_index):
         """
         Initializes the center cell.
 
         Offsetted cells belonging in the given neighborhood must be added separately.
         """
         self.total = 0
-        self.index = index
         self.neighbors = bitarray()
+        self.flat_index = flat_index
 
     def populate(self, plane, offsets):
         """
@@ -40,8 +40,8 @@ class Neighborhood:
         """
         self.neighbors = bitarray()
         for offset in offsets:
-            f_index = plane.flatten(offset) + self.index
-            self.neighbors.append(plane.bits[f_index % len(plane.bits)])
+            index = plane.flatten(offset) + self.flat_index
+            self.neighbors.append(plane.bits[index % len(plane.bits)])
 
         self.total = len(self.neighbors)
 

@@ -1,11 +1,3 @@
-"""
-The following determines the next state of a given cell in a CAM.
-
-The ruleset takes in a collection of rules specifying neighborhoods, as well as the configurations of
-said neighborhood that yield an "on" or "off" state on the cell a ruleset is being applied to.
-
-@date: May 31st, 2015
-"""
 import enum
 import numpy as np
 import configuration as c
@@ -75,20 +67,21 @@ class Ruleset:
         # which states do not pass for each configuration
         current_states = enumerate(plane.bits)
         for config in self.configurations:
+
             totals = c.Neighborhood.get_totals(plane, config.offsets)
+
+            # Determine which function should be used to test success
+            if self.method == Ruleset.Method.MATCH:
+                vfunc = config.matches
+            elif self.method == Ruleset.Method.TOLERATE:
+                vfunc = config.tolerates
+            elif self.method == Ruleset.Method.SATISFY:
+                vfunc = config.satisfies
+            elif self.method == Ruleset.Method.ALWAYS_PASS:
+                vfunc = lambda *args: True
 
             next_states = []
             for index, state in current_states:
-
-                # Determine which function should be used to test success
-                if self.method == Ruleset.Method.MATCH:
-                    vfunc = config.matches
-                elif self.method == Ruleset.Method.TOLERATE:
-                    vfunc = config.tolerates
-                elif self.method == Ruleset.Method.SATISFY:
-                    vfunc = config.satisfies
-                elif self.method == Ruleset.Method.ALWAYS_PASS:
-                    vfunc = lambda *args: True
 
                 # Passes a mostly uninitialized neighborhood to the given function
                 # Note if you need actual states of the neighborhood, make sure to

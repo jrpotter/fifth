@@ -1,20 +1,7 @@
-"""
-Allow for displaying 2D/3D CAMs.
-
-Two means of viewing the CAM are provided: either through the console via the curses
-library or through a GUI display via the matplotlib library. Note the console display
-only supports 2D CAMs while the GUI supports 2D/3D automata.
-
-Both methods allow for the ability to display multiple cell planes at a time, with
-additional support for ECHOs and TRACing.
-
-@date: June 16th, 2015
-"""
 import sys
 import time
 import curses
 import itertools
-
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as ani
@@ -22,7 +9,14 @@ import matplotlib.animation as ani
 
 class _Display:
     """
-    The base class for visualization of the CAM.
+    Allow for displaying 2D/3D CAMs.
+
+    Two means of viewing the CAM are provided: either through the console via the curses
+    library or through a GUI display via the matplotlib library. Note the console display
+    only supports 2D CAMs while the GUI supports 2D/3D automata.
+
+    Both methods allow for the ability to display multiple cell planes at a time, with
+    additional support for ECHOs and TRACing.
     """
 
     def __init__(self, cam, clock, rules, *args):
@@ -87,7 +81,7 @@ class ConsoleDisplay(_Display):
 
         # Construct the necessary planes
         self.overlays = []
-        for i, pl in enumerate(self.cam.planes):
+        for i, plane in enumerate(self.cam.planes):
             pad = curses.newpad(self.width+1, self.height+1)
             self.overlays.append(pad)
             if i > 0:
@@ -116,7 +110,7 @@ class ConsoleDisplay(_Display):
         elif ch == curses.KEY_RIGHT:
             self.x = (self.x - 1) % self.width
 
-    def _draw_overlay(self, overlay, pl):
+    def _draw_overlay(self, overlay, plane):
         """
         Draw the grid onto the overlay.
 
@@ -126,18 +120,22 @@ class ConsoleDisplay(_Display):
         overlay.clear()
 
         line = 0
-        grid = np.append(pl.grid[self.y:], pl.grid[:self.y])
-        for bits in grid.flat:
+        for i in range(plane.shape[0]):
             overlay.move(line, 0)
             line += 1
 
-            # We go through and group the bits apart so
+            # Make sure to account for movement
+            y_offset = ((i + self.y) % plane.shape[0]) * plane.shape[1]
+            bits = plane.bits[y_offset:y_offset+plane.shape[1]]
             cycle = bits[self.x:] + bits[:self.x]
+
+            # Draw only active states
             for k, g in itertools.groupby(cycle):
                 values = list(g)
                 if any(values):
                     overlay.addstr('+' * len(values))
                 else:
+                    pass
                     y, x = overlay.getyx()
                     overlay.move(y, x + len(values))
 
@@ -161,10 +159,10 @@ class ConsoleDisplay(_Display):
                 self._shift(self.stdscr.getch())
 
                 # Cycle around grid
-                for i, pl in enumerate(self.cam.planes):
-                    if pl.dirty:
-                        pl.dirty = False
-                        self._draw_overlay(self.overlays[i], pl)
+                for i, plane in enumerate(self.cam.planes):
+                    if plane.dirty:
+                        plane.dirty = False
+                        self._draw_overlay(self.overlays[i], plane)
                         self.overlays[i].noutrefresh(0, 0, 0, 0, max_y-1, max_x-1)
 
                 # Prepare for next loop
@@ -203,7 +201,7 @@ class WindowDisplay(_Display):
         # for proper superimposition
         self.matrices = []
         for plane in self.cam.planes:
-            mshown = plt.matshow(plane.bits(), self.fig.number, cmap='Greys')
+            mshown = plt.matshow(plane.matrix(), self.fig.number, cmap='Greys')
             self.matrices.append(mshown)
 
     def _valid(self):
@@ -223,7 +221,7 @@ class WindowDisplay(_Display):
         """
         self.cam.tick(self.rules, *self.tick_args)
         if len(self.cam.master.shape) == 2:
-            self.matrices[0].set_array(self.cam.master.bits())
+            self.matrices[0].set_array(self.cam.master.matrix())
             return [self.matrices[0]]
         else:
             pass
