@@ -1,15 +1,20 @@
 (CAM) Fifth
 ===========
 
+[Version 1.0.0 - 12/14/2015]
+
 The following is a Cellular Automata Machine (CAM) library loosely based off the CAM Forth language as described
 in "Cellular Automata Machines" by Toffoli and Margolus. I wanted to be able to follow along in the book but,
 though mentioned as reasonably priced, a CAM Forth machine is out of my price range.
 
-The following uses numpy/matplotlib underneath, and will ideally incorporate the following:
+The following uses numpy/matplotlib underneath, and incorporates:
 
 * N-Dimensional Cellular Automata
 * Arbitrary count of bit planes and description of neighborhoods
 * Timing specifications and control for granular viewing
+
+Furthermore, we would like to eventually incorporate:
+
 * ECHOing and TRACing in library for 2D CAMs
 
 Documentation will be made available at fuzzykayak.com/... but a quickstart will be provided below.
@@ -44,4 +49,6 @@ c.randomize()
 c.start_plot(400, p.ruleset)
 ```
 
-![alt tag](https://raw.githubusercontent.com/jrpotter/fifth/master/rsrc/demo.gif)
+<p align="center">
+<img src="https://raw.githubusercontent.com/jrpotter/fifth/master/rsrc/demo.gif">
+</p>
